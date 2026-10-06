@@ -52,6 +52,12 @@
   (1,246 tests), Web lint/build, full .NET Release suite (6,109 tests), and
   `./bin/lint` pass. The gotcha is `0z1711`; its duplicate-ID prevention note
   is `0z1712`.
+- [x] Explain standalone Collection and Wishlist actions, including manual
+  Soulseek peer searches, delete confirmations, bulk filter scope, and paging
+  status. The focused Collections/Wishlist suite passes 20 tests; the full Web
+  suite passes 1,253 tests; Web lint/build, all 6,109 .NET Release tests, and
+  `./bin/lint` pass. The initial .NET run hit a full shared `/tmp` tmpfs; the
+  full rerun passed with `TMPDIR` redirected to the main filesystem.
 - [x] Refresh active-council counts to 429 remote-text and 12,442 red-team
   candidates after the post-push baseline found the prior inventory stale.
   These scanner matches remain review queues, not confirmed defects.

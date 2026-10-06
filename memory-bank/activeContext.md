@@ -1,4 +1,4 @@
-## Current state — MediaCore action guidance validated; continue UI audit — 2026-10-06 01:47 UTC
+## Current state — Collections and Wishlist guidance validated; continue UI audit — 2026-10-06 02:13 UTC
 
 The .NET 10 audit is complete. Every first-party application, test, and
 build-tool project under `src`, `tests`, and `tools` targets `net10.0`.
@@ -24,15 +24,23 @@ preview, local identity scan, target verification, and complete remediation
 baseline pass. Current candidate counts are 25 async-void, 0 silent-catch,
 215 callback/event, 429 remote-text, 12,442 red-team, and 834 mutable-ownership.
 
-MediaCore statistics actions now use explanatory tooltips, including the
-increased peer-traffic risk of clearing the retrieval cache and the effect of
-resetting statistics. Focused and full Web tests pass (1,246 total); Web lint,
-production build, full .NET Release tests (6,109), and `./bin/lint` pass. The
-MediaCore gotcha now has unique ID `0z1711`; gotcha `0z1712` records the
-identifier collision. Those docs commits are local. The component, test, new
-release fragment, changelog edit, and current memory updates remain
-uncommitted. Preview the release notes, scan identity leaks, commit and push,
-rerun the remediation baseline, then continue the UI audit.
+Collections now explains standalone create, delete, add, and share actions.
+Wishlist table and card controls explain manual peer searches, search history,
+editing, deletion, bulk filters, and form actions. The page-count indicator is
+now a keyboard-accessible status with a Popup instead of a disabled button.
+Existing Popup triggers remain single-wrapped. Table and card views each render
+one delete confirmation; an initial duplicate-dialog finding was corrected
+after tracing the mutually exclusive view branch. Gotchas `0z1713` and
+`0z1714` capture the repeated action-guidance gap, and `0z1715` records the
+view-branch verification lesson.
+
+Focused Collections/Wishlist tests pass 20/20; the full Web suite passes 1,253
+tests across 191 files; Web lint/build, full .NET Release tests (6,109), and
+`./bin/lint` pass. The first .NET run hit a full shared `/tmp` tmpfs; rerunning
+with test files under `/var/tmp` passed. The current Collections/Wishlist
+component, tests, release fragment, changelog, and memory updates are not yet
+committed. Preview notes, scan identity leaks, commit and push, rerun the
+remediation baseline, then continue the UI audit.
 
 Stable `.344` remains immutable and its six platform artifacts are verified.
 Its exact Jammy AMD64 build `33815555` is now `Successfully built`, but the

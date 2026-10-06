@@ -96,6 +96,192 @@ describe('Wishlist', () => {
     ).toBeInTheDocument();
   });
 
+  it('explains wishlist row actions and defers peer searches until clicked', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        filter: 'flac',
+        id: 'wish-1',
+        lastMatchCount: 0,
+        lastSearchedAt: null,
+        searchText: 'rare album',
+        totalSearchCount: 0,
+      },
+    ]);
+    renderWishlist();
+
+    const expectTooltip = async (button, tooltip) => {
+      const trigger = button.disabled ? button.parentElement : button;
+      fireEvent.mouseEnter(trigger);
+      expect(await screen.findByText(tooltip)).toBeInTheDocument();
+      fireEvent.mouseLeave(trigger);
+    };
+
+    expect(await screen.findByText('rare album')).toBeInTheDocument();
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Show rare album search history' }),
+      'Review this item’s linked search history and past results.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Run rare album wishlist search now' }),
+      'Manually search Soulseek for current matches. This contacts peers now rather than waiting for the next scheduled run.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Edit rare album wishlist settings' }),
+      'Change this item’s search text, filters, result limits, and automation settings.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Delete rare album from Wishlist' }),
+      'Remove this wishlist entry after confirmation when you no longer want its search tracked.',
+    );
+
+    expect(wishlistAPI.getSearches).not.toHaveBeenCalled();
+    expect(wishlistAPI.runSearch).not.toHaveBeenCalled();
+    expect(wishlistAPI.remove).not.toHaveBeenCalled();
+    expect(screen.queryByText('Edit Wishlist Item')).not.toBeInTheDocument();
+  });
+
+  it('shows one delete confirmation with guidance in table and card views', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        id: 'wish-1',
+        lastMatchCount: 0,
+        lastSearchedAt: null,
+        searchText: 'rare album',
+        totalSearchCount: 0,
+      },
+    ]);
+    renderWishlist();
+
+    const expectTooltip = async (button, tooltip) => {
+      fireEvent.mouseEnter(button);
+      expect(await screen.findByText(tooltip)).toBeInTheDocument();
+      fireEvent.mouseLeave(button);
+    };
+
+    expect(await screen.findByText('rare album')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete rare album from Wishlist' }));
+    expect(screen.getAllByText('Confirm Delete')).toHaveLength(1);
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Cancel' }),
+      'Keep this wishlist item and return to the list.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Delete' }),
+      'Remove this wishlist item and its saved search settings.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show wishlist as cards' }));
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Run rare album wishlist search now' }),
+      'Manually search Soulseek for current matches. This contacts peers now rather than waiting for the next scheduled run.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Delete rare album from Wishlist' }));
+    expect(screen.getAllByText('Confirm Delete')).toHaveLength(1);
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Cancel' }),
+      'Keep this wishlist item and return to the list.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Delete' }),
+      'Remove this wishlist item and its saved search settings.',
+    );
+    expect(wishlistAPI.remove).not.toHaveBeenCalled();
+  });
+
+  it('explains add and bulk-filter modal actions without running them on hover', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        filter: 'flac',
+        id: 'wish-1',
+        lastMatchCount: 0,
+        lastSearchedAt: null,
+        searchText: 'rare album',
+        totalSearchCount: 0,
+      },
+    ]);
+    renderWishlist();
+
+    const expectTooltip = async (button, tooltip) => {
+      const trigger = button.disabled ? button.parentElement : button;
+      fireEvent.mouseEnter(trigger);
+      expect(await screen.findByText(tooltip)).toBeInTheDocument();
+      fireEvent.mouseLeave(trigger);
+    };
+
+    await screen.findByText('rare album');
+    fireEvent.click(screen.getByRole('button', { name: 'Add Search' }));
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Cancel' }),
+      'Close this form and discard unsaved wishlist changes.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Add' }),
+      'Add this search to the wishlist with the filter and automation settings below.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select rare album for bulk actions' }));
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Clear' }),
+      'Clear the selection so bulk actions no longer affect these wishlist items.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Edit filters for selected wishlist items' }));
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Cancel' }),
+      'Close without changing filters on the selected wishlist items.',
+    );
+    await expectTooltip(
+      screen.getByRole('button', { name: 'Apply Filter' }),
+      'Apply this filter to 1 selected wishlist item in one step.',
+    );
+
+    expect(wishlistAPI.create).not.toHaveBeenCalled();
+    expect(wishlistAPI.updateFilters).not.toHaveBeenCalled();
+  });
+
+  it('explains the empty wishlist action', async () => {
+    wishlistAPI.getAll.mockResolvedValue([]);
+    renderWishlist();
+
+    const button = await screen.findByRole('button', { name: 'Add Your First Search' });
+    fireEvent.mouseEnter(button);
+
+    expect(await screen.findByText(
+      'Add a search to your wishlist so you can track it manually or automate it with the options you choose.',
+    )).toBeInTheDocument();
+    expect(wishlistAPI.create).not.toHaveBeenCalled();
+  });
+
+  it('labels the current wishlist page as status and explains pagination', async () => {
+    localStorage.setItem('slskdn-wishlist-view-state', JSON.stringify({ pageSize: 50 }));
+    wishlistAPI.getAll.mockResolvedValue(Array.from({ length: 51 }, (_, index) => ({
+      autoDownload: false,
+      enabled: true,
+      id: `wish-${index}`,
+      lastMatchCount: 0,
+      lastSearchedAt: null,
+      searchText: `album ${index}`,
+      totalSearchCount: 0,
+    })));
+    renderWishlist();
+
+    expect(await screen.findByText('album 0')).toBeInTheDocument();
+    const pageStatus = screen.getByRole('status', { name: 'Page 1 of 2' });
+    expect(pageStatus).toHaveTextContent('1/2');
+    fireEvent.mouseEnter(pageStatus);
+
+    expect(await screen.findByText(
+      'Shows your current wishlist page. Use the arrow buttons to move between pages.',
+    )).toBeInTheDocument();
+  });
+
   it('keeps wishlist rows on direct request states without inbox promotion', async () => {
     renderWishlist();
 

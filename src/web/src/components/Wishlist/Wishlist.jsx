@@ -11,6 +11,7 @@ import * as wishlistAPI from '../../lib/wishlist';
 import * as searchesAPI from '../../lib/searches';
 import * as optionsAPI from '../../lib/options';
 import { syncBlockedUsers } from '../../lib/userBlocks';
+import { TooltipButton } from '../Shared';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -276,41 +277,60 @@ const WishlistItemRow = ({
               }
             />
           )}
-          <Button
+          <TooltipButton
+            aria-label={showSearches
+              ? `Hide ${item.searchText} search history`
+              : `Show ${item.searchText} search history`}
             compact
             icon={showSearches ? 'angle up' : 'angle down'}
             loading={loadingSearches}
             onClick={handleToggleSearches}
             size="tiny"
-            title={showSearches ? 'Hide search history' : 'Show search history'}
+            tooltip={showSearches
+              ? 'Hide earlier searches to return to the wishlist items.'
+              : 'Review this item’s linked search history and past results.'}
           />
-          <Button
+          <TooltipButton
+            aria-label={`Run ${item.searchText} wishlist search now`}
             compact
             icon="play"
             loading={running}
             onClick={handleRunSearch}
             primary
             size="tiny"
-            title="Run search now"
+            tooltip="Manually search Soulseek for current matches. This contacts peers now rather than waiting for the next scheduled run."
           />
-          <Button
+          <TooltipButton
+            aria-label={`Edit ${item.searchText} wishlist settings`}
             compact
             icon="edit"
             onClick={() => onEdit(item)}
             size="tiny"
-            title="Edit"
+            tooltip="Change this item’s search text, filters, result limits, and automation settings."
           />
-          <Button
+          <TooltipButton
+            aria-label={`Delete ${item.searchText} from Wishlist`}
             color="red"
             compact
             icon="trash"
             onClick={() => setConfirmDelete(true)}
             size="tiny"
-            title="Delete"
+            tooltip="Remove this wishlist entry after confirmation when you no longer want its search tracked."
           />
           <Confirm
-            cancelButton="Cancel"
-            confirmButton="Delete"
+            cancelButton={(
+              <TooltipButton tooltip="Keep this wishlist item and return to the list.">
+                Cancel
+              </TooltipButton>
+            )}
+            confirmButton={(
+              <TooltipButton
+                color="red"
+                tooltip="Remove this wishlist item and its saved search settings."
+              >
+                Delete
+              </TooltipButton>
+            )}
             content={`Delete wishlist item "${item.searchText}"?`}
             header="Confirm Delete"
             onCancel={() => setConfirmDelete(false)}
@@ -632,10 +652,15 @@ const WishlistItemCard = ({
           </div>
           <div style={{ display: 'flex', gap: '0.25em' }}>
             <Popup
-              content={expanded ? 'Collapse' : 'Expand to show search history and results'}
+              content={expanded
+                ? 'Hide this item’s linked searches and result details.'
+                : 'Show this item’s linked searches and past results inline.'}
               position="top center"
               trigger={
                 <Button
+                  aria-label={expanded
+                    ? `Hide ${item.searchText} search history`
+                    : `Show ${item.searchText} search history`}
                   compact
                   icon={expanded ? 'angle up' : 'angle down'}
                   loading={loadingSearches}
@@ -655,6 +680,7 @@ const WishlistItemCard = ({
                   position="top center"
                   trigger={
                     <Button
+                      aria-label={`View latest search results for ${item.searchText}`}
                       compact
                       icon="search"
                       size="mini"
@@ -678,10 +704,11 @@ const WishlistItemCard = ({
               />
             )}
             <Popup
-              content="Run search now"
+              content="Manually search Soulseek for current matches. This contacts peers now rather than waiting for the next scheduled run."
               position="top center"
               trigger={
                 <Button
+                  aria-label={`Run ${item.searchText} wishlist search now`}
                   compact
                   icon="play"
                   loading={running}
@@ -692,10 +719,11 @@ const WishlistItemCard = ({
               }
             />
             <Popup
-              content="Edit"
+              content="Change this item’s search text, filters, result limits, and automation settings."
               position="top center"
               trigger={
                 <Button
+                  aria-label={`Edit ${item.searchText} wishlist settings`}
                   compact
                   icon="edit"
                   onClick={() => onEdit(item)}
@@ -704,10 +732,11 @@ const WishlistItemCard = ({
               }
             />
             <Popup
-              content="Delete"
+              content="Remove this wishlist entry after confirmation when you no longer want its search tracked."
               position="top center"
               trigger={
                 <Button
+                  aria-label={`Delete ${item.searchText} from Wishlist`}
                   color="red"
                   compact
                   icon="trash"
@@ -856,8 +885,19 @@ const WishlistItemCard = ({
         )}
       </Segment>
       <Confirm
-        cancelButton="Cancel"
-        confirmButton="Delete"
+        cancelButton={(
+          <TooltipButton tooltip="Keep this wishlist item and return to the list.">
+            Cancel
+          </TooltipButton>
+        )}
+        confirmButton={(
+          <TooltipButton
+            color="red"
+            tooltip="Remove this wishlist item and its saved search settings."
+          >
+            Delete
+          </TooltipButton>
+        )}
         content={`Delete wishlist item "${item.searchText}"?`}
         header="Confirm Delete"
         onCancel={() => setConfirmDelete(false)}
@@ -1172,14 +1212,22 @@ const WishlistModal = ({ item, onClose, onSave }) => {
         </Form>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
+        <TooltipButton
+          onClick={onClose}
+          tooltip="Close this form and discard unsaved wishlist changes."
+        >
+          Cancel
+        </TooltipButton>
+        <TooltipButton
           loading={saving}
           onClick={handleSave}
           primary
+          tooltip={isEdit
+            ? 'Save the updated search, filter, and automation settings for this wishlist item.'
+            : 'Add this search to the wishlist with the filter and automation settings below.'}
         >
           {isEdit ? 'Save' : 'Add'}
-        </Button>
+        </TooltipButton>
       </Modal.Actions>
     </Modal>
   );
@@ -1249,10 +1297,20 @@ const BulkFilterModal = ({ count, onClose, onSave }) => {
         </Form>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button loading={saving} onClick={handleSave} primary>
+        <TooltipButton
+          onClick={onClose}
+          tooltip="Close without changing filters on the selected wishlist items."
+        >
+          Cancel
+        </TooltipButton>
+        <TooltipButton
+          loading={saving}
+          onClick={handleSave}
+          primary
+          tooltip={`Apply this filter to ${count} selected wishlist ${count === 1 ? 'item' : 'items'} in one step.`}
+        >
           Apply Filter
-        </Button>
+        </TooltipButton>
       </Modal.Actions>
     </Modal>
   );
@@ -1892,12 +1950,13 @@ const Wishlist = () => {
           <p>
             Add searches to your wishlist and they&apos;ll run automatically.
           </p>
-          <Button
+          <TooltipButton
             onClick={handleAdd}
             primary
+            tooltip="Add a search to your wishlist so you can track it manually or automate it with the options you choose."
           >
             Add Your First Search
-          </Button>
+          </TooltipButton>
         </Segment>
       ) : (
         <>
@@ -1919,7 +1978,7 @@ const Wishlist = () => {
                 }
               />
               <Popup
-                content="Enable all selected wishlist items"
+                content="Enable the selected wishlist searches so scheduled runs can check them again."
                 trigger={
                   <Button
                     compact
@@ -1930,7 +1989,7 @@ const Wishlist = () => {
                 }
               />
               <Popup
-                content="Disable all selected wishlist items"
+                content="Pause scheduled runs for all selected wishlist searches."
                 trigger={
                   <Button
                     compact
@@ -1941,7 +2000,7 @@ const Wishlist = () => {
                 }
               />
               <Popup
-                content="Delete all selected wishlist items"
+                content="Delete selected wishlist searches after confirmation when they are no longer needed."
                 trigger={
                   <Button
                     compact
@@ -1952,13 +2011,14 @@ const Wishlist = () => {
                   />
                 }
               />
-              <Button
+              <TooltipButton
                 compact
                 onClick={() => setSelectedIds(new Set())}
                 size="small"
+                tooltip="Clear the selection so bulk actions no longer affect these wishlist items."
               >
                 Clear
-              </Button>
+              </TooltipButton>
             </Segment>
           )}
           <div style={{ marginBottom: '0.75em', display: 'flex', gap: '0.5em', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -2055,9 +2115,20 @@ const Wishlist = () => {
                     />
                   }
                 />
-                <Button disabled>
-                  {currentPage}/{pageCount}
-                </Button>
+                <Popup
+                  content="Shows your current wishlist page. Use the arrow buttons to move between pages."
+                  position="top center"
+                  trigger={(
+                    <span
+                      aria-label={`Page ${currentPage} of ${pageCount}`}
+                      className="ui basic button"
+                      role="status"
+                      tabIndex={0}
+                    >
+                      {currentPage}/{pageCount}
+                    </span>
+                  )}
+                />
                 <Popup
                   content="Go to the next page of wishlist items."
                   position="top center"

@@ -3,6 +3,7 @@ import * as streaming from '../../lib/streaming';
 import PlayCollectionItemButton from '../Player/PlayCollectionItemButton';
 import ErrorSegment from '../Shared/ErrorSegment';
 import LoaderSegment from '../Shared/LoaderSegment';
+import { TooltipButton } from '../Shared';
 import React, { Component } from 'react';
 import {
   Button,
@@ -422,14 +423,15 @@ export default class Collections extends Component {
           {error && <ErrorSegment caption={error} />}
 
           <div style={{ marginBottom: '1em' }}>
-            <Button
+            <TooltipButton
               data-testid="collections-create"
               onClick={() => this.setState({ createModalOpen: true })}
               primary
+              tooltip="Open the collection form to create a playlist or list for organizing items."
             >
               <Icon name="plus" />
               Create Collection
-            </Button>
+            </TooltipButton>
           </div>
 
           {collections.length === 0 ? (
@@ -438,13 +440,14 @@ export default class Collections extends Component {
                 <Icon name="list" />
                 {loading ? 'Loading collections' : 'No collections yet'}
               </Header>
-              <Button
+              <TooltipButton
                 data-testid="collections-create-empty"
                 onClick={() => this.setState({ createModalOpen: true })}
                 primary
+                tooltip="Open the collection form to create a playlist or list for organizing items."
               >
                 Create Collection
-              </Button>
+              </TooltipButton>
             </Segment>
           ) : (
             <Table celled>
@@ -468,16 +471,17 @@ export default class Collections extends Component {
                     <Table.Cell>{collection.type || 'Playlist'}</Table.Cell>
                     <Table.Cell>{collection.itemCount || 0}</Table.Cell>
                     <Table.Cell>
-                      <Button
+                      <TooltipButton
                         negative
                         onClick={(event) => {
                           event.stopPropagation();
                           this.handleDeleteCollection(collection.id);
                         }}
                         size="small"
+                        tooltip="Delete this collection after confirmation when you no longer need it."
                       >
                         Delete
-                      </Button>
+                      </TooltipButton>
                     </Table.Cell>
                   </Table.Row>
                 ))}
@@ -524,22 +528,24 @@ export default class Collections extends Component {
               </Header>
 
               <div style={{ marginBottom: '1em' }}>
-                <Button
+                <TooltipButton
                   data-testid="collection-add-item"
                   onClick={() => this.setState({ addItemModalOpen: true })}
                   primary
+                  tooltip="Open item search so you can add a library item or content ID to this collection."
                 >
                   <Icon name="plus" />
                   Add Item
-                </Button>
-                <Button
+                </TooltipButton>
+                <TooltipButton
                   data-testid="share-create"
                   onClick={this.handleOpenShareModal}
                   style={{ marginLeft: '0.5em' }}
+                  tooltip="Choose a share group and permissions so its members can access this collection."
                 >
                   <Icon name="share alternate" />
                   Share Collection
-                </Button>
+                </TooltipButton>
               </div>
 
               <div data-testid="collection-items-table">
@@ -745,7 +751,7 @@ export default class Collections extends Component {
               </Form>
             </Modal.Content>
             <Modal.Actions>
-              <Button
+              <TooltipButton
                 onClick={() =>
                   this.setState({
                     createModalOpen: false,
@@ -754,17 +760,19 @@ export default class Collections extends Component {
                     newCollectionType: 'Playlist',
                   })
                 }
+                tooltip="Close the form and discard the collection details you entered."
               >
                 Cancel
-              </Button>
-              <Button
+              </TooltipButton>
+              <TooltipButton
                 data-testid="collections-create-submit"
                 disabled={!newCollectionTitle.trim()}
                 onClick={this.handleCreateCollection}
                 primary
+                tooltip="Save this collection so you can organize items here. Enter a title first to enable creation."
               >
                 Create
-              </Button>
+              </TooltipButton>
             </Modal.Actions>
           </Modal>
 
@@ -830,17 +838,21 @@ export default class Collections extends Component {
               )}
             </Modal.Content>
             <Modal.Actions>
-              <Button onClick={() => this.setState({ shareModalOpen: false })}>
+              <TooltipButton
+                onClick={() => this.setState({ shareModalOpen: false })}
+                tooltip="Close this form without creating a share."
+              >
                 Cancel
-              </Button>
-              <Button
+              </TooltipButton>
+              <TooltipButton
                 data-testid="share-create-submit"
                 disabled={!shareAudienceId}
                 onClick={this.handleCreateShare}
                 primary
+                tooltip="Share this collection with the selected group using the permissions below. Choose a group first to enable sharing."
               >
                 Share
-              </Button>
+              </TooltipButton>
             </Modal.Actions>
           </Modal>
 
@@ -963,7 +975,7 @@ export default class Collections extends Component {
               </Form>
             </Modal.Content>
             <Modal.Actions>
-              <Button
+              <TooltipButton
                 onClick={() =>
                   this.setState({
                     addItemModalOpen: false,
@@ -971,17 +983,19 @@ export default class Collections extends Component {
                     itemSearchResults: [],
                   })
                 }
+                tooltip="Close item search and clear the current query and results."
               >
                 Cancel
-              </Button>
-              <Button
+              </TooltipButton>
+              <TooltipButton
                 data-testid="collection-add-item-submit"
                 disabled={!itemSearchQuery.trim()}
                 onClick={this.handleAddItem}
                 primary
+                tooltip="Add the selected search result or entered content ID to this collection. Enter a query first to enable."
               >
                 Add Item
-              </Button>
+              </TooltipButton>
             </Modal.Actions>
           </Modal>
         </Container>

@@ -18682,3 +18682,25 @@ choosing an identifier. Both docs commits remain local with the MediaCore UI
 batch. Launchpad build `33815555` for `.344` completed successfully, but the
 exact binary is still absent from the published-binaries query and public
 Jammy AMD64 index; `.345` remains gated on its publication.
+
+## 2026-10-06 02:13 UTC — Explain Collection and Wishlist actions
+
+Standalone Collection actions now describe collection creation/deletion,
+adding items, and sharing scope. Wishlist table and card actions explain search
+history, manual peer searches, editing, deletion, bulk filtering, and form
+actions. Manual per-item search guidance states that it contacts Soulseek
+peers. The current-page display is a keyboard-accessible status with a Popup,
+not a disabled button. Existing Popup-backed controls were kept single-wrapped.
+
+Added regressions for the standalone actions, no side effects on hover, one
+delete confirmation per active view, and pagination status. Focused
+Collections/Wishlist tests pass 20/20; the full Web suite passes 1,253 tests;
+Web lint/build, all 6,109 .NET Release tests, and `./bin/lint` pass. The first
+.NET run hit a full shared `/tmp` tmpfs; rerunning with test temp files under
+`/var/tmp` passed. Gotchas `0z1713` and `0z1714` record recurring action-help
+gaps; `0z1715` corrects the mistaken duplicate-dialog reading by recording the
+need to trace mutually exclusive view branches.
+
+Launchpad build `33815555` for `.344` is successful, but its exact binary is
+still absent from the published-binaries query and public Jammy AMD64 index.
+The next stable tag remains gated on that publication.
