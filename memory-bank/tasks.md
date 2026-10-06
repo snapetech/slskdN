@@ -31,6 +31,9 @@
 - [x] Add Semantic UI explanations to selected-transfer Retry, Cancel, and
   Remove controls and request-details modal actions, verify the guidance in
   component tests, and record the user-facing change in the release notes.
+- [x] Pass the full web suite (1,234 tests), web lint/build, full .NET Release
+  suite (6,109 tests), `./bin/lint`, release-note preview, and the complete
+  post-push remediation baseline; push the UI and gotcha commits.
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
   project and selected NuGet asset target `net8.0`, which the .NET 10 app can

@@ -1,4 +1,4 @@
-## Current state — Explain selected transfer actions — 2026-10-06 00:30 UTC
+## Current state — Explain transfer actions and verify .NET assets — 2026-10-06 00:40 UTC
 
 The .NET 10 audit remains complete: all first-party app, test, and build-tool
 projects under `src`, `tests`, and `tools` target `net10.0`. MonoTorrent's
@@ -12,18 +12,23 @@ TransferTable's selected Retry, Cancel, and Remove actions now have Semantic UI
 popups describing their effect and selection scope. The request-details modal
 Save, Cancel request, and Close controls now use tooltip-backed buttons,
 including hover help while Save is disabled. The focused tests pass 6/6; the
-full web suite and lint/build must be rerun after the modal update. The release
-fragment is updated; commit, push, and repository gates remain pending.
+full web suite passes 1,234 tests; web lint, production build, full .NET Release
+tests (6,109), and `./bin/lint` pass. Release-note preview from `.344` includes
+the transfer UX fragment. Commits `ca517a3ba`, `660e9f847`, and `2b99f92c0`
+are pushed to `snapetech/slskdn`; the complete post-push remediation baseline
+passes with review counts at 215 callback/event, 426 remote-text, 12,414
+red-team, and 834 mutable-ownership candidates.
 
 The shared policy collection fix and prior diagnostic hardening are pushed and
 the post-push baseline passed. Stable `.344` is immutable and its six platform
 archives/support assets pass checksum and version verification. Its exact
-Launchpad source is Published, but Jammy AMD64 remains `Needs building`; do not
-submit `.345` until that exact binary is built and published. Then run the
-guarded stable release gate and verify hosted publishers/artifacts. Continue
-classifying confirmed code-backed findings; broad scanner counts remain review
-queues, while T-908 lifecycle, global Party ID authority, accessibility,
-WAN/resource measurements, hidden-tab throttling, and the original frontend
+Launchpad source is Published, but Jammy AMD64 remains `Needs building` and the
+`.344` workflow is still waiting for PPA publication; do not submit `.345`
+until that exact binary is built and published. Then run the guarded stable
+release gate and verify hosted publishers/artifacts. Continue classifying
+confirmed code-backed findings; broad scanner counts remain review queues,
+while T-908 lifecycle, global Party ID authority, accessibility, WAN/resource
+measurements, hidden-tab throttling, and the original frontend
 network-change cause remain evidence-gated.
 
 ## Prior state — Freeze shared policy collections — 2026-10-06 00:22 UTC

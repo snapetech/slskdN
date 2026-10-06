@@ -18592,6 +18592,19 @@ The full Release test run passes 6,106 tests (74 application, 5,743 unit,
 artifact-verified; Launchpad still marks its exact Jammy AMD64 build `Needs
 building`, so `.345` remains held until the binary is published.
 
+## 2026-10-06 00:40 UTC — Push transfer action guidance
+
+TransferTable's selected Retry/Cancel/Remove actions now explain the selection
+scope. RequestDetailModal's Save, Cancel request, and Close buttons now use
+tooltips, including guidance while Save is disabled. Added component regressions
+for all six actions, a user-facing release fragment, changelog and task notes,
+and gotcha `0z1706`. The focused tests pass 6/6 and the full web suite passes
+1,234 tests; web lint/build, full .NET Release tests (6,109), and `./bin/lint`
+pass. The `.344` to `HEAD` release-note preview and full post-push remediation
+baseline pass. Gotchas `0z1705` and `0z1706` plus the product fix are pushed at
+`2b99f92c0`. Stable `.344`'s exact Jammy AMD64 package is still awaiting
+publication; `.345` remains gated on it.
+
 ## 2026-10-06 00:36 UTC — Explain transfer actions
 
 Added Semantic UI popups to the selected-transfer Retry, Cancel, and Remove
