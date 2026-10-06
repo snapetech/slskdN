@@ -40385,3 +40385,17 @@ matching closing tag.
 **Prevention:** When replacing a JSX component, update and inspect both tags
 before running the focused test file; treat a parse or collection error as a
 failed check even when other test files pass.
+
+### 0z1718. Name And Explain Pod Workspace Controls (2026-10-06)
+
+**What went wrong:** The Pod workspace had unnamed icon-only create, discover,
+save, and send buttons, channel buttons without guidance, and modal actions
+without tooltips. Existing Popups covered only part of the screen's actions.
+
+**Why:** The workspace mixed text controls, icon controls, and Popup-wrapped
+actions, so guidance and accessible names were applied inconsistently.
+
+**Prevention:** Give every icon-only action an explicit accessible name and
+explain every button's effect and reason in a Semantic UI Popup or
+`TooltipButton`. Preserve existing Popup triggers without wrapping them in a
+second tooltip component, and test the controls in the rendered workspace.
