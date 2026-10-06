@@ -17,6 +17,20 @@ action markup where the tooltip pattern was already used.
 own `Popup` with the action and its selected scope. Pin the popup content in a
 component regression so a grouped button cannot silently lose its explanation.
 
+### 0z1706. Explain Request Detail Modal Actions (2026-10-06)
+
+**What went wrong:** The request details modal's Save, Cancel request, and
+Close buttons had no Semantic UI `Popup` explanation, even though nearby
+transfer actions explained their behavior.
+
+**Why:** The modal action row and rename form were implemented separately from
+the transfer table's tooltip-backed controls, so the button-level guidance
+requirement was not applied consistently.
+
+**Prevention:** Audit every action in modal bodies and footers, including
+disabled controls. Wrap disabled buttons so their help remains hoverable, and
+pin each action's guidance in a component regression.
+
 ### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
 
 **What went wrong:** A new policy-collection regression used an unqualified
