@@ -1,4 +1,4 @@
-## Current state — Explain transfer actions and verify .NET assets — 2026-10-06 00:40 UTC
+## Current state — Continue search control and UI affordance remediation — 2026-10-06 00:53 UTC
 
 The .NET 10 audit remains complete: all first-party app, test, and build-tool
 projects under `src`, `tests`, and `tools` target `net10.0`. MonoTorrent's
@@ -19,17 +19,27 @@ are pushed to `snapetech/slskdn`; the complete post-push remediation baseline
 passes with review counts at 215 callback/event, 426 remote-text, 12,414
 red-team, and 834 mutable-ownership candidates.
 
+The follow-on search UI pass adds explanations to Advanced Search presets and
+Apply/Cancel, all Soulseek Native Discovery profile/recommendation actions, and
+album completion Refresh. Focused UI tests pass 10/10; the full web suite passes
+1,238 tests, web lint/build, `./bin/lint`, and `git diff --check` pass. Release-
+note preview, product commit/push, and the post-push baseline remain for this
+batch. A broad JSX scan found 179 `Button` candidates without a same-file
+`Popup` ancestor or `TooltipButton` alias; composed/caller-wrapped controls
+create false positives, so this is a triage queue rather than a confirmed
+defect count.
+
 The shared policy collection fix and prior diagnostic hardening are pushed and
 the post-push baseline passed. Stable `.344` is immutable and its six platform
 archives/support assets pass checksum and version verification. Its exact
-Launchpad source is Published, but Jammy AMD64 remains `Needs building` and the
-`.344` workflow is still waiting for PPA publication; do not submit `.345`
-until that exact binary is built and published. Then run the guarded stable
-release gate and verify hosted publishers/artifacts. Continue classifying
-confirmed code-backed findings; broad scanner counts remain review queues,
-while T-908 lifecycle, global Party ID authority, accessibility, WAN/resource
-measurements, hidden-tab throttling, and the original frontend
-network-change cause remain evidence-gated.
+Launchpad source is Published, but Jammy AMD64 remains `Needs building`. The
+`.344` PPA job failed after timing out at 10,800 seconds; its exact binary has
+not been built or published. Do not submit `.345` until that artifact is
+published, then run the guarded stable release gate and verify hosted
+publishers/artifacts. Continue classifying confirmed code-backed findings;
+broad scanner counts remain review queues, while T-908 lifecycle, global Party
+ID authority, accessibility, WAN/resource measurements, hidden-tab throttling,
+and the original frontend network-change cause remain evidence-gated.
 
 ## Prior state — Freeze shared policy collections — 2026-10-06 00:22 UTC
 

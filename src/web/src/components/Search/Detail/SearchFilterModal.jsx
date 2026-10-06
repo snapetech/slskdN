@@ -3,7 +3,10 @@ import {
   serializeFiltersToString,
 } from '../../../lib/searches';
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Header, Icon, Modal, Segment } from 'semantic-ui-react';
+import { Form, Header, Icon, Modal, Segment } from 'semantic-ui-react';
+import TooltipButton from '../../Shared/TooltipButton';
+
+const Button = TooltipButton;
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -121,6 +124,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                     }}
                     size="small"
                     type="button"
+                    tooltip="Set a 320 kbps minimum and prefer lossy results for a high-bitrate match."
                   >
                     <Icon name="music" />
                     High Quality (320kbps+)
@@ -135,6 +139,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                     }}
                     size="small"
                     type="button"
+                    tooltip="Require lossless files with at least 16-bit, 44.1 kHz audio."
                   >
                     <Icon name="star" />
                     Lossless Only
@@ -150,6 +155,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                     }}
                     size="small"
                     type="button"
+                    tooltip="Clear the bitrate, lossless, bit-depth, and sample-rate filters."
                   >
                     <Icon name="eraser" />
                     Clear Quality
@@ -318,10 +324,16 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
         </Form>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={() => setOpen(false)}>Cancel</Button>
+        <Button
+          onClick={() => setOpen(false)}
+          tooltip="Close without applying these search filters."
+        >
+          Cancel
+        </Button>
         <Button
           onClick={handleSave}
           primary
+          tooltip="Apply these filters to the current search."
         >
           Apply Filters
         </Button>

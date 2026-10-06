@@ -1,13 +1,15 @@
 import { fetchAlbumCompletion } from '../../lib/musicBrainz';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Button,
   Header,
   Label,
   List,
   Message,
   Segment,
 } from 'semantic-ui-react';
+import TooltipButton from '../Shared/TooltipButton';
+
+const Button = TooltipButton;
 
 const formatDuration = (durationMs) => {
   if (!durationMs) {
@@ -93,6 +95,7 @@ const AlbumCompletionPanel = ({ disabled }) => {
           floated="right"
           onClick={loadAlbums}
           size="mini"
+          tooltip="Fetch the latest album and track completion data from the server."
         >
           Refresh
         </Button>

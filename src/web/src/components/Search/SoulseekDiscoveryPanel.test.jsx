@@ -5,7 +5,7 @@
 import SoulseekDiscoveryPanel from './SoulseekDiscoveryPanel';
 import * as soulseekDiscovery from '../../lib/soulseekDiscovery';
 import * as wishlist from '../../lib/wishlist';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,6 +68,29 @@ describe('SoulseekDiscoveryPanel', () => {
         }),
       ),
     );
+  });
+
+  it('explains the manual interest and recommendation actions', async () => {
+    render(<SoulseekDiscoveryPanel />);
+
+    const guidance = [
+      ['Add Interest', 'Add this text to your Soulseek interest profile to shape future recommendations.'],
+      ['Add Hated', 'Mark this text as something you do not want recommended.'],
+      ['Remove Interest', 'Remove this text from your interest profile.'],
+      ['Remove Hated', 'Stop suppressing this text from recommendations.'],
+      ['My Recs', 'Load recommendations based on your own Soulseek interests.'],
+      ['Global', 'Load shared recommendations across the Soulseek community.'],
+      ['Similar Users', 'Find users with interests similar to yours.'],
+      ['Item Recs', 'Find recommendations related to the item you entered.'],
+      ['Item Users', 'Find users who are similar to people interested in this item.'],
+      ['User Interests', "Fetch the entered user's public interest and hated-item lists."],
+    ];
+
+    for (const [label, tooltip] of guidance) {
+      const button = screen.getByRole('button', { name: label });
+      fireEvent.mouseEnter(button);
+      expect(await screen.findByText(tooltip)).toBeInTheDocument();
+    }
   });
 
   it('loads similar users and then user interests on demand', async () => {

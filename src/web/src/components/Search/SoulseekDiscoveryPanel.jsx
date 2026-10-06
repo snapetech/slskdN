@@ -7,7 +7,7 @@ import * as wishlist from '../../lib/wishlist';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
-  Button,
+  Button as SemanticButton,
   Form,
   Header,
   Icon,
@@ -17,6 +17,9 @@ import {
   Popup,
   Segment,
 } from 'semantic-ui-react';
+import TooltipButton from '../Shared/TooltipButton';
+
+const Button = TooltipButton;
 
 const getValue = (value, camel, pascal, fallback = undefined) =>
   value?.[camel] ?? value?.[pascal] ?? fallback;
@@ -230,7 +233,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
         <Popup
           content="Start a normal Soulseek search for this recommendation."
           trigger={
-            <Button
+            <SemanticButton
               aria-label={`Search ${recommendation.item}`}
               icon="search"
               onClick={() => onSearch?.(recommendation.item)}
@@ -241,7 +244,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
         <Popup
           content="Save this raw recommendation to Wishlist for manual review."
           trigger={
-            <Button
+            <SemanticButton
               aria-label={`Add ${recommendation.item} to Wishlist`}
               icon="bookmark outline"
               onClick={() => addToWishlist(recommendation.item)}
@@ -268,7 +271,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
         <Popup
           content="Load this user's native Soulseek interests."
           trigger={
-            <Button
+            <SemanticButton
               aria-label={`Load ${user.username} interests`}
               icon="heart outline"
               onClick={() => loadUserInterests(user.username)}
@@ -359,6 +362,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => updateInterest(false, false)}
             type="button"
+            tooltip="Add this text to your Soulseek interest profile to shape future recommendations."
           >
             <Icon name="heart" />
             Add Interest
@@ -368,6 +372,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => updateInterest(true, false)}
             type="button"
+            tooltip="Mark this text as something you do not want recommended."
           >
             <Icon name="ban" />
             Add Hated
@@ -377,6 +382,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => updateInterest(false, true)}
             type="button"
+            tooltip="Remove this text from your interest profile."
           >
             <Icon name="minus circle" />
             Remove Interest
@@ -386,6 +392,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => updateInterest(true, true)}
             type="button"
+            tooltip="Stop suppressing this text from recommendations."
           >
             <Icon name="minus square outline" />
             Remove Hated
@@ -400,6 +407,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => loadRecommendations(false)}
             type="button"
+            tooltip="Load recommendations based on your own Soulseek interests."
           >
             <Icon name="lightbulb outline" />
             My Recs
@@ -409,6 +417,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => loadRecommendations(true)}
             type="button"
+            tooltip="Load shared recommendations across the Soulseek community."
           >
             <Icon name="globe" />
             Global
@@ -418,6 +427,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={loadSimilarUsers}
             type="button"
+            tooltip="Find users with interests similar to yours."
           >
             <Icon name="users" />
             Similar Users
@@ -427,6 +437,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={loadItemRecommendations}
             type="button"
+            tooltip="Find recommendations related to the item you entered."
           >
             <Icon name="sitemap" />
             Item Recs
@@ -436,6 +447,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={loadItemSimilarUsers}
             type="button"
+            tooltip="Find users who are similar to people interested in this item."
           >
             <Icon name="user plus" />
             Item Users
@@ -445,6 +457,7 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
             labelPosition="left"
             onClick={() => loadUserInterests()}
             type="button"
+            tooltip="Fetch the entered user's public interest and hated-item lists."
           >
             <Icon name="address card outline" />
             User Interests

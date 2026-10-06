@@ -24,6 +24,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Fixed
 
+- Advanced search presets and modal actions, Soulseek Native Discovery
+  controls, and album completion refresh now explain their effects before use.
 - Selected transfer actions and request details modal controls now explain
   what they do before you use them.
 - Pod management, content-linking, and shadow-index endpoints now propagate

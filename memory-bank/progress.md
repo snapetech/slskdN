@@ -18592,6 +18592,18 @@ The full Release test run passes 6,106 tests (74 application, 5,743 unit,
 artifact-verified; Launchpad still marks its exact Jammy AMD64 build `Needs
 building`, so `.345` remains held until the binary is published.
 
+## 2026-10-06 00:57 UTC — Continue search action guidance
+
+The button audit found missing explanations in Advanced Search Filters,
+Soulseek Native Discovery profile/recommendation actions, and the album
+completion refresh control. Added Semantic `TooltipButton` guidance and
+component assertions; focused UI tests pass 10/10. The full web suite passes
+1,238 tests; web lint/build, `./bin/lint`, and `git diff --check` pass. The
+`.344` Launchpad wait job failed after 10,800 seconds while its exact
+Jammy AMD64 build remains `Needs building`; the next stable tag remains gated
+on the binary being built and published. Release-note preview, commit/push,
+and post-push baseline remain.
+
 ## 2026-10-06 00:40 UTC — Push transfer action guidance
 
 TransferTable's selected Retry/Cancel/Remove actions now explain the selection

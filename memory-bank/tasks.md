@@ -34,6 +34,10 @@
 - [x] Pass the full web suite (1,234 tests), web lint/build, full .NET Release
   suite (6,109 tests), `./bin/lint`, release-note preview, and the complete
   post-push remediation baseline; push the UI and gotcha commits.
+- [x] Add explanations to advanced search presets and modal actions, native
+  discovery profile/recommendation actions, and album completion refresh.
+  Focused regressions pass 10/10; the complete web suite passes 1,238 tests,
+  and web lint/build plus `./bin/lint` pass.
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
   project and selected NuGet asset target `net8.0`, which the .NET 10 app can

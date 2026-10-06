@@ -19,4 +19,21 @@ describe('TooltipButton', () => {
         .toBeInTheDocument();
     });
   });
+
+  it('removes the disabled trigger when async work enables the button', () => {
+    const { rerender } = render(
+      <TooltipButton disabled tooltip="Load the latest data from the server.">
+        Refresh
+      </TooltipButton>,
+    );
+
+    rerender(
+      <TooltipButton tooltip="Load the latest data from the server.">
+        Refresh
+      </TooltipButton>,
+    );
+
+    expect(screen.getAllByRole('button', { name: 'Refresh' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled();
+  });
 });
