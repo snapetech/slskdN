@@ -17,6 +17,20 @@ capacity of a machine-wide temporary filesystem.
 **Prevention:** Create validation scratch files with `mktemp`, register cleanup
 with `trap`, and avoid assuming that `/tmp` has available space.
 
+### 0z1741. Mock Every Network Client Used By Component Tests (2026-10-06)
+
+**What went wrong:** `Messaging.test.jsx` mocked chat, pod, and room clients but
+left the capability client live. Its mount-time request could receive a 401,
+trigger the shared Axios logout interceptor, and reset the composer during an
+unrelated slash-command test.
+
+**Why:** The component hydrates feature gates through a separate service module
+that the test did not include in its mocked network boundary.
+
+**Prevention:** Mock every network-facing module used by a rendered component
+and resolve mount-time capability requests explicitly. Component tests should
+not depend on shared API authentication interceptors.
+
 ### 0z1739. Do Not Pass Async Lambdas To Action-Based Change Events (2026-10-06)
 
 **What went wrong:** `OptionsMonitor.OnChange` accepts an `Action`, but
