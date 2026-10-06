@@ -1,4 +1,4 @@
-## Current state — Continue UI audit after clean remediation baseline — 2026-10-06 01:29 UTC
+## Current state — MediaCore action guidance validated; continue UI audit — 2026-10-06 01:47 UTC
 
 The .NET 10 audit is complete. Every first-party application, test, and
 build-tool project under `src`, `tests`, and `tools` targets `net10.0`.
@@ -13,26 +13,33 @@ and safety values; displays path status and translated paths; passes a populated
 readiness preview into contract review; and names the report action honestly.
 Path maps now require a separator boundary. Send Private Message, User Note,
 and Lidarr Wanted Sync actions have explanatory tooltips. Gotchas `0z1694`,
-`0z1695`, and `0z1696` are committed locally. The focused changed-component
-suite passes 41/41, the complete web suite passes 1,245 tests across 190 files,
-web lint/build pass, `dotnet test slskd.sln -c Release --no-restore` passes
-6,109 tests, and `./bin/lint` passes.
+`0z1695`, and `0z1696` are pushed. The focused changed-component suite passes
+41/41, the complete web suite passes 1,245 tests across 190 files, web
+lint/build pass, `dotnet test slskd.sln -c Release --no-restore` passes 6,109
+tests, and `./bin/lint` passes.
 
-The release fragment, Unreleased changelog, product code, tests, and prior
-memory notes are committed and pushed in `ec8c0b7f2`. The `.344`-to-`HEAD`
-release-note preview, local identity scan, target verification, and push
-passed. The active backlog now records 429 remote-text and 12,442 red-team
-candidates; the complete post-push remediation baseline passes with all counts
-current (25 async-void, 0 silent-catch, 215 callback/event, 429 remote-text,
-12,442 red-team, 834 mutable ownership). The refreshed inventory and memory
-handoff still need their own commit and push. Continue the code-backed UI
-audit.
+The media-server fixes are pushed in `ec8c0b7f2`; the refreshed active backlog
+and memory handoff are pushed in `46ed981b9`. The `.344`-to-`HEAD` release-note
+preview, local identity scan, target verification, and complete remediation
+baseline pass. Current candidate counts are 25 async-void, 0 silent-catch,
+215 callback/event, 429 remote-text, 12,442 red-team, and 834 mutable-ownership.
+
+MediaCore statistics actions now use explanatory tooltips, including the
+increased peer-traffic risk of clearing the retrieval cache and the effect of
+resetting statistics. Focused and full Web tests pass (1,246 total); Web lint,
+production build, full .NET Release tests (6,109), and `./bin/lint` pass. The
+MediaCore gotcha now has unique ID `0z1711`; gotcha `0z1712` records the
+identifier collision. Those docs commits are local. The component, test, new
+release fragment, changelog edit, and current memory updates remain
+uncommitted. Preview the release notes, scan identity leaks, commit and push,
+rerun the remediation baseline, then continue the UI audit.
 
 Stable `.344` remains immutable and its six platform artifacts are verified.
-Its Jammy AMD64 PPA build is still the release gate for `.345`; do not create
-the next stable tag until that exact `.344` binary is built and published.
-Then run the guarded stable release gate and verify hosted artifacts. Continue
-triaging confirmed findings; T-908 lifecycle, global Party ID authority,
+Its exact Jammy AMD64 build `33815555` is now `Successfully built`, but the
+published-binaries query and public apt index do not yet contain the exact
+version. Do not create `.345` until that binary is published. Then run the
+guarded stable release gate and verify hosted artifacts. Continue triaging
+confirmed findings; T-908 lifecycle, global Party ID authority,
 accessibility/device evidence, WAN/resource measurements, hidden-tab
 throttling, and the original frontend network-change cause remain open or
 evidence-gated.

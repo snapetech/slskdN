@@ -31,6 +31,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Media-server readiness reviews now show path mapping results and clearly
   state that they run locally. Private-message, user-note, and Lidarr sync
   buttons explain their effects before use.
+- MediaCore statistics actions now explain which metrics they load. Cache
+  clearing describes the added DHT traffic risk, and Reset All Stats explains
+  that it removes accumulated statistics after confirmation.
 - Pod management, content-linking, and shadow-index endpoints now propagate
   caller cancellation instead of reporting canceled requests as HTTP 500 errors.
 - Pod content lookup propagates caller cancellation and escapes MusicBrainz

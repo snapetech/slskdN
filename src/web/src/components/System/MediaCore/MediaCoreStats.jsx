@@ -1,8 +1,8 @@
 import * as mediacore from '../../../lib/mediacore';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
+import { TooltipButton } from '../../Shared';
 import {
-  Button,
   Card,
   Grid,
   Header,
@@ -201,15 +201,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button.Group fluid>
-              <Button
-                disabled={loadingRetrievalStats}
-                loading={loadingRetrievalStats}
-                onClick={handleLoadRetrievalStats}
-              >
-                Load Stats
-              </Button>
-            </Button.Group>
+            <TooltipButton
+              disabled={loadingRetrievalStats}
+              fluid
+              loading={loadingRetrievalStats}
+              onClick={handleLoadRetrievalStats}
+              tooltip="Load descriptor retrieval performance and cache statistics."
+            >
+              Load Stats
+            </TooltipButton>
             <details style={{ marginTop: '1em' }}>
               <summary>Advanced retrieval cache controls</summary>
               <Message
@@ -220,7 +220,12 @@ const MediaCoreStats = () => {
                 removes cached descriptor lookup results and can increase
                 follow-up DHT retrieval traffic.
               </Message>
-              <Button onClick={handleClearRetrievalCache}>Clear Cache</Button>
+              <TooltipButton
+                onClick={handleClearRetrievalCache}
+                tooltip="Remove cached descriptor lookups. Later DHT retrievals may generate more peer traffic."
+              >
+                Clear Cache
+              </TooltipButton>
             </details>
 
             {retrievalStats && (
@@ -278,9 +283,15 @@ const MediaCoreStats = () => {
           </Card.Content>
           <Card.Content>
             <div className="ui fluid buttons">
-              <Button disabled={loadingDashboard} loading={loadingDashboard} onClick={handleLoadMediaCoreDashboard} primary>
-              Load Full Dashboard
-            </Button>
+              <TooltipButton
+                disabled={loadingDashboard}
+                loading={loadingDashboard}
+                onClick={handleLoadMediaCoreDashboard}
+                primary
+                tooltip="Load overall MediaCore performance and usage metrics."
+              >
+                Load Full Dashboard
+              </TooltipButton>
             </div>
             <details style={{ marginTop: '1em' }}>
               <summary>Advanced dashboard reset controls</summary>
@@ -292,12 +303,13 @@ const MediaCoreStats = () => {
                 review the dashboard first so operational context is not lost
                 accidentally.
               </Message>
-              <Button
+              <TooltipButton
                 color="red"
                 onClick={handleResetMediaCoreStats}
+                tooltip="Clear all accumulated MediaCore statistics after confirming."
               >
                 Reset All Stats
-              </Button>
+              </TooltipButton>
             </details>
 
             {mediaCoreDashboard && !mediaCoreDashboard.error && (
@@ -381,9 +393,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingRegistryStats} fluid loading={loadingRegistryStats} onClick={handleLoadContentRegistryStats}>
+            <TooltipButton
+              disabled={loadingRegistryStats}
+              fluid
+              loading={loadingRegistryStats}
+              onClick={handleLoadContentRegistryStats}
+              tooltip="Load Content Registry mapping totals and domain statistics."
+            >
               Load Registry Stats
-            </Button>
+            </TooltipButton>
 
             {contentRegistryStats && !contentRegistryStats.error && (
               <div style={{ marginTop: '1em' }}>
@@ -445,9 +463,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingDescriptorStats} fluid loading={loadingDescriptorStats} onClick={handleLoadDescriptorStats}>
+            <TooltipButton
+              disabled={loadingDescriptorStats}
+              fluid
+              loading={loadingDescriptorStats}
+              onClick={handleLoadDescriptorStats}
+              tooltip="Load descriptor retrieval and cache performance metrics."
+            >
               Load Descriptor Stats
-            </Button>
+            </TooltipButton>
 
             {descriptorStats && !descriptorStats.error && (
               <div style={{ marginTop: '1em' }}>
@@ -505,9 +529,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingFuzzyStats} fluid loading={loadingFuzzyStats} onClick={handleLoadFuzzyMatchingStats}>
+            <TooltipButton
+              disabled={loadingFuzzyStats}
+              fluid
+              loading={loadingFuzzyStats}
+              onClick={handleLoadFuzzyMatchingStats}
+              tooltip="Load fuzzy-match totals, success rate, and accuracy metrics."
+            >
               Load Fuzzy Stats
-            </Button>
+            </TooltipButton>
 
             {fuzzyMatchingStats && !fuzzyMatchingStats.error && (
               <div style={{ marginTop: '1em' }}>
@@ -578,9 +608,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingPerceptualStats} fluid loading={loadingPerceptualStats} onClick={handleLoadPerceptualHashingStats}>
+            <TooltipButton
+              disabled={loadingPerceptualStats}
+              fluid
+              loading={loadingPerceptualStats}
+              onClick={handleLoadPerceptualHashingStats}
+              tooltip="Load perceptual-hash computation and accuracy metrics."
+            >
               Load Hashing Stats
-            </Button>
+            </TooltipButton>
 
             {perceptualHashingStats && !perceptualHashingStats.error && (
               <div style={{ marginTop: '1em' }}>
@@ -651,9 +687,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingIpldStats} fluid loading={loadingIpldStats} onClick={handleLoadIpldMappingStats}>
+            <TooltipButton
+              disabled={loadingIpldStats}
+              fluid
+              loading={loadingIpldStats}
+              onClick={handleLoadIpldMappingStats}
+              tooltip="Load IPLD node, link, and mapping statistics."
+            >
               Load IPLD Stats
-            </Button>
+            </TooltipButton>
 
             {ipldMappingStats && !ipldMappingStats.error && (
               <div style={{ marginTop: '1em' }}>
@@ -707,9 +749,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingPortabilityStats} fluid loading={loadingPortabilityStats} onClick={handleLoadMetadataPortabilityStats}>
+            <TooltipButton
+              disabled={loadingPortabilityStats}
+              fluid
+              loading={loadingPortabilityStats}
+              onClick={handleLoadMetadataPortabilityStats}
+              tooltip="Load metadata export, import, and conflict-resolution metrics."
+            >
               Load Portability Stats
-            </Button>
+            </TooltipButton>
 
             {metadataPortabilityStats && !metadataPortabilityStats.error && (
               <div style={{ marginTop: '1em' }}>
@@ -774,9 +822,15 @@ const MediaCoreStats = () => {
             </Card.Description>
           </Card.Content>
           <Card.Content>
-            <Button disabled={loadingPublishingStats} fluid loading={loadingPublishingStats} onClick={handleLoadContentPublishingStats}>
+            <TooltipButton
+              disabled={loadingPublishingStats}
+              fluid
+              loading={loadingPublishingStats}
+              onClick={handleLoadContentPublishingStats}
+              tooltip="Load Content Publishing and DHT publication performance metrics."
+            >
               Load Publishing Stats
-            </Button>
+            </TooltipButton>
 
             {contentPublishingStats && !contentPublishingStats.error && (
               <div style={{ marginTop: '1em' }}>

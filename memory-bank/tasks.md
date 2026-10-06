@@ -46,6 +46,12 @@
   wanted-sync actions. Focused changed-component tests pass 41/41; the full
   web suite passes 1,245 tests across 190 files, web lint/build pass, the full
   .NET Release suite passes 6,109 tests, and `./bin/lint` passes.
+- [x] Add guidance to every MediaCore statistics action, including the extra
+  peer traffic after cache clearing and the confirmation required to reset
+  accumulated stats. The eleven-action tooltip regression, full Web suite
+  (1,246 tests), Web lint/build, full .NET Release suite (6,109 tests), and
+  `./bin/lint` pass. The gotcha is `0z1711`; its duplicate-ID prevention note
+  is `0z1712`.
 - [x] Refresh active-council counts to 429 remote-text and 12,442 red-team
   candidates after the post-push baseline found the prior inventory stale.
   These scanner matches remain review queues, not confirmed defects.
@@ -123,9 +129,10 @@
   review candidates; these are scanner queues, not confirmed bug counts.
 - [x] Preview the `.344` to `HEAD` release note; commit and push the batch at
   `08b080cd1`; pass the complete post-push remediation baseline.
-- [ ] Complete `.344` publisher verification. The Launchpad source is
-  Published, but the Jammy AMD64 build is still `Needs building`; create
-  stable `.345` only after that binary is published.
+- [ ] Complete `.344` publisher verification. The exact Jammy AMD64 build
+  `33815555` is `Successfully built`, but the published-binaries query and
+  public apt index do not contain its exact version yet. Create stable `.345`
+  only after that binary is published.
 - [ ] Continue the code-backed whole-product remediation. T-908 lifecycle,
   global Party ID authority, accessibility, WAN/resource measurements,
   hidden-tab throttling, frontend network-change root cause, and broad review

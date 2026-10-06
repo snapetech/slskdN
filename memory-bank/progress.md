@@ -18666,3 +18666,19 @@ inventory counts. Refreshed them to 429 remote-text and 12,442 red-team review
 candidates; the complete remediation baseline now passes. The refreshed
 inventory and memory handoff still need a commit and push. Stable `.344` remains
 immutable; wait for its exact Jammy AMD64 PPA binary before creating `.345`.
+
+## 2026-10-06 01:47 UTC — Explain MediaCore statistics actions
+
+All eleven MediaCore statistics actions now use explanatory tooltips. Cache
+clearing calls out that later DHT lookups may increase peer traffic, and Reset
+All Stats describes the removal of accumulated operational data. Added an
+eleven-action hover regression and a user-facing release fragment. The focused
+test passes; the full Web suite passes 1,246 tests; Web lint/build, all 6,109
+.NET Release tests (74 app, 5,746 unit, 289 integration), and `./bin/lint` pass.
+
+The MediaCore gotcha was assigned a duplicate ID by mistake. Renumbered it to
+`0z1711` and immediately added `0z1712` about checking the full ADR before
+choosing an identifier. Both docs commits remain local with the MediaCore UI
+batch. Launchpad build `33815555` for `.344` completed successfully, but the
+exact binary is still absent from the published-binaries query and public
+Jammy AMD64 index; `.345` remains gated on its publication.
