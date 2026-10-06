@@ -40441,3 +40441,17 @@ even for advanced DHT and membership operations.
 read-only lookups and local cleanup separately from DHT publication, peer
 messaging, membership changes, and key handling; mention network-visible data
 and purpose before mutation.
+
+### 0z1722. Explain ContentID Registry Actions Beyond Their Labels (2026-10-06)
+
+**What went wrong:** The main MediaCore ContentID registry used the same
+label-only button wrapper for local lookups, CPU-heavy comparisons, metadata
+imports, and DHT publication or retrieval. The Popup repeated the action name
+without clarifying scope, cost, or network effects.
+
+**Why:** The shared wrapper made the controls appear to satisfy the tooltip
+rule even though it had no context about the effect of each operation.
+
+**Prevention:** Supply specific tooltip text at each action call site. Separate
+local analysis and previews from registry mutation and DHT traffic; state when
+a batch repeats a lookup or write for every supplied ID.
