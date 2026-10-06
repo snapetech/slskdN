@@ -22,7 +22,7 @@ public static class SoulseekObfuscationSupport
     /// <summary>
     ///     Gets the Soulseek connection types currently supported by type-1 obfuscation.
     /// </summary>
-    public static IReadOnlyList<string> SupportedConnectionTypes { get; } = ["P", "D", "F"];
+    public static IReadOnlyList<string> SupportedConnectionTypes { get; } = Array.AsReadOnly(new[] { "P", "D", "F" });
 
     /// <summary>
     ///     Build a serializable runtime plan for configuration, diagnostics, and the web UI.

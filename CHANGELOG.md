@@ -34,6 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Shared path, file, privacy, capability, and VPN ingress policies now use
+  read-only collections, so callers cannot alter later validation or access
+  decisions by mutating exposed arrays.
 - Startup diagnostics now escape configured paths and filesystem errors, and
   redact credentials and URL details from Loki endpoints before logging.
 - LAN discovery logs now escape peer names and parse exception details so

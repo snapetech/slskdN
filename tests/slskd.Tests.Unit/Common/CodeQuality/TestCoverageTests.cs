@@ -27,7 +27,7 @@ namespace slskd.Tests.Unit.Common.CodeQuality
             Assert.Contains("Common.Moderation", subsystems);
             Assert.Contains("PodCore", subsystems);
             Assert.Contains("Common.Security", subsystems);
-            Assert.Equal(13, subsystems.Length); // All critical subsystems
+            Assert.Equal(13, subsystems.Count); // All critical subsystems
         }
 
         [Fact]

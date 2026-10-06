@@ -36,14 +36,14 @@ public sealed class Honeypot : IDisposable
     /// <summary>
     /// Fake files that honeypots advertise.
     /// </summary>
-    public static readonly HoneypotFile[] DecoyFiles = new[]
+    public static IReadOnlyList<HoneypotFile> DecoyFiles { get; } = Array.AsReadOnly(new[]
     {
         new HoneypotFile("slskd_config_backup.zip", DecoyType.ConfigFile, "CONFIG"),
         new HoneypotFile("admin_credentials.txt", DecoyType.CredentialFile, "CREDS"),
         new HoneypotFile("database_dump.sql", DecoyType.DatabaseDump, "DB"),
         new HoneypotFile("private_keys.pem", DecoyType.PrivateKey, "KEYS"),
         new HoneypotFile("user_data_export.json", DecoyType.UserData, "DATA"),
-    };
+    });
 
     /// <summary>
     /// Event raised when honeypot is triggered.

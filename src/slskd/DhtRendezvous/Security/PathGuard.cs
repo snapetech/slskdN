@@ -4,6 +4,7 @@
 namespace slskd.DhtRendezvous.Security;
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -132,11 +133,11 @@ public static partial class PathGuard
     /// <summary>
     /// Gets the expected media extensions for various file types.
     /// </summary>
-    public static readonly string[] SafeAudioExtensions = new[]
+    public static IReadOnlyList<string> SafeAudioExtensions { get; } = Array.AsReadOnly(new[]
     {
         ".flac", ".mp3", ".ogg", ".opus", ".m4a", ".aac", ".wav", ".wma",
         ".ape", ".wv", ".tta", ".alac", ".aiff", ".aif",
-    };
+    });
 
     /// <summary>
     /// Checks if a filename has a safe audio extension.

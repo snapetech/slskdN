@@ -5,6 +5,7 @@ namespace slskd.Capabilities;
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -38,12 +39,12 @@ public sealed class CapabilityFileService
     /// <summary>
     /// Alternative paths for compatibility.
     /// </summary>
-    public static readonly string[] AlternativePaths = new[]
+    public static IReadOnlyList<string> AlternativePaths { get; } = Array.AsReadOnly(new[]
     {
         "__slskdn_caps__.json",
         "@@slskdn/capabilities.json",
         ".slskdn/caps.json",
-    };
+    });
 
     public CapabilityFileService(
         ILogger<CapabilityFileService> logger,

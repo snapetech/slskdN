@@ -24,7 +24,7 @@ namespace slskd.Common.CodeQuality
         /// <summary>
         ///     Critical subsystems that require comprehensive test coverage.
         /// </summary>
-        public static readonly string[] CriticalSubsystems = new[]
+        public static IReadOnlyList<string> CriticalSubsystems { get; } = Array.AsReadOnly(new[]
         {
             "VirtualSoulfind.Core",           // Content resolution and matching
             "VirtualSoulfind.v2.Planning",    // Download planning logic
@@ -39,7 +39,7 @@ namespace slskd.Common.CodeQuality
             "Relay",                          // Content relay services
             "DhtRendezvous",                  // Peer discovery
             "HashDb",                         // Content hashing and storage
-        };
+        });
 
         /// <summary>
         ///     Analyzes test coverage for the specified assemblies.

@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Security.Cryptography;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 
 namespace slskd.Mesh.Privacy;
@@ -18,7 +19,7 @@ public sealed class BucketPadder : IMessagePadder, IDisposable
     private bool _disposed;
 
     // Standard bucket sizes that provide good privacy vs overhead balance
-    public static readonly int[] StandardBucketSizes = { 512, 1024, 2048, 4096, 8192, 16384 };
+    public static IReadOnlyList<int> StandardBucketSizes { get; } = Array.AsReadOnly(new[] { 512, 1024, 2048, 4096, 8192, 16384 });
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BucketPadder"/> class.

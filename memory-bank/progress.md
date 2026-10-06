@@ -18591,3 +18591,20 @@ The full Release test run passes 6,106 tests (74 application, 5,743 unit,
 289 integration), and repository lint passes. `.344` remains immutable and
 artifact-verified; Launchpad still marks its exact Jammy AMD64 build `Needs
 building`, so `.345` remains held until the binary is published.
+
+## 2026-10-06 00:22 UTC — Protect shared policy decisions from mutation
+
+Replaced 13 exposed mutable static policy collections with read-only wrappers
+or isolated snapshots across filename/path validation, safe-media handling,
+FLAC recognition, honeypot/capability paths, padding, Soulseek metadata, VPN
+ingress ACLs, coverage policy, and `Database.List`. Kept the upstream database
+array signature by returning a clone. Added mutation and behavior regressions,
+`check-public-policy-immutability.sh`, and registered it in the full baseline.
+The focused policy tests pass 3/3, the VPN-agent Release build has zero
+warnings, and `./bin/lint` passes. The full Release suite passes 6,109 tests
+(74 application, 5,746 unit, 289 integration). Its first run had one 7,352-byte
+allocation-budget failure; six isolated reruns and the complete rerun pass.
+Current review inventories are 215 callback/event, 426 remote-text, 12,414
+red-team, and 834 mutable-ownership candidates. The `.344` Launchpad Jammy
+AMD64 build is still `Needs building`; commit, push, release-note preview, and
+the full post-push baseline remain.

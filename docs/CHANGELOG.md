@@ -36,6 +36,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ### Security
 
+- Shared path, file, privacy, capability, and VPN ingress policies now use
+  read-only collections, so callers cannot alter later validation or access
+  decisions by mutating exposed arrays.
 - Startup diagnostics now escape configured paths and filesystem errors, and
   redact credentials and URL details from Loki endpoints before logging.
 - HTTP exception and CSRF token middleware now escape request and exception

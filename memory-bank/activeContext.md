@@ -1,4 +1,4 @@
-## Current state — Sanitize startup diagnostics — 2026-10-05 23:58 UTC
+## Current state — Freeze shared policy collections — 2026-10-06 00:22 UTC
 
 The .NET 10 audit is complete: every first-party app, test, and build-tool
 project under `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent's
@@ -7,23 +7,24 @@ consumer supports. No active first-party `.NET 6` target was found. The
 vendored slskNet.Runtime projects remain at their pinned upstream `net8.0`
 targets under the repository's source-sync contract.
 
-The DHT/mesh and HTTP middleware diagnostic fixes, gotchas `0z1697`–`0z1701`,
-release notes, and inventory/task handoff are pushed through `8111d5f04`; the
-post-push remediation baseline passes. The next review found raw operator-
-configured paths and exception text in startup diagnostics, plus a Loki URL
-logged with possible credentials. Startup path/error values are now escaped,
-Loki details are redacted, and tests cover paths, filesystem errors and URL
-credentials. Focused startup logging tests pass 3/3, the full Release suite
-passes 6,106 tests (74 application, 5,743 unit, 289 integration), `./bin/lint`
-passes, and the `.344` to `HEAD` release-note preview includes the new startup
-security fragment. The gotcha and product change are pushed at `d438b47cb`.
+The DHT/mesh, HTTP middleware, and startup diagnostic fixes with gotchas
+`0z1697`–`0z1702`, release notes, and inventories are pushed through
+`d438b47cb`; the post-push remediation baseline passes. This batch closes a
+public-ownership finding: 13 shared static policy collections could be
+mutated through exposed arrays. Path/file filters, honeypot/capability lists,
+FLAC recognition, privacy bucket sizes, Soulseek metadata, VPN ingress CIDRs
+and prefixes, coverage policy, and `Database.List` now use read-only wrappers
+or isolated snapshots. Mutation and preservation regressions pass 3/3; the
+complete Release suite passes 6,109 tests (74 application, 5,746 unit, 289
+integration), `./bin/lint` passes, and the .NET 10 VPN agent builds with zero
+warnings. The first full-suite run had one allocation-budget failure that
+passed six isolated runs and the complete suite rerun.
 
-The latest council report has 215 callback/event, 426 remote-text, 12,408
-red-team, and 828 mutable-ownership candidates. These are review queues, not
-confirmed bugs. Gotcha `0z1702`, the startup fix/release note, and refreshed
-inventory/memory records are pushed at `d438b47cb`; the full post-push
-remediation baseline passes. Continue classifying confirmed code-backed
-findings.
+The latest council report has 215 callback/event, 426 remote-text, 12,414
+red-team, and 834 mutable-ownership candidates. These are review queues, not
+confirmed bugs. This batch adds `check-public-policy-immutability.sh` to the
+remediation baseline and a security release fragment; its commits and final
+post-push baseline are pending.
 
 Stable `.344` is immutable and its six platform archives/support assets pass
 checksum and version verification. The exact Launchpad source is Published,

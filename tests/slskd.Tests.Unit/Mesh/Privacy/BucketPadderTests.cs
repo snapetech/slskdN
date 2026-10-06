@@ -204,6 +204,6 @@ public class BucketPadderTests : IDisposable
         Assert.Contains(4096, BucketPadder.StandardBucketSizes);
         Assert.Contains(8192, BucketPadder.StandardBucketSizes);
         Assert.Contains(16384, BucketPadder.StandardBucketSizes);
-        Assert.Equal(6, BucketPadder.StandardBucketSizes.Length);
+        Assert.Equal(6, BucketPadder.StandardBucketSizes.Count);
     }
 }

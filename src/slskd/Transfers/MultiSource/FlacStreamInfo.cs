@@ -4,6 +4,7 @@
 namespace slskd.Transfers.MultiSource
 {
     using System;
+    using System.Collections.Generic;
 
     /// <summary>
     ///     Parsed FLAC STREAMINFO metadata block.
@@ -69,7 +70,7 @@ namespace slskd.Transfers.MultiSource
         /// <summary>
         ///     The FLAC magic number "fLaC".
         /// </summary>
-        public static readonly byte[] FlacMagic = { 0x66, 0x4C, 0x61, 0x43 }; // "fLaC"
+        public static IReadOnlyList<byte> FlacMagic { get; } = Array.AsReadOnly(new byte[] { 0x66, 0x4C, 0x61, 0x43 }); // "fLaC"
 
         /// <summary>
         ///     Minimum bytes needed to parse STREAMINFO (4 magic + 4 header + 34 streaminfo).

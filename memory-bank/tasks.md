@@ -81,6 +81,21 @@
 - [x] Commit/push gotcha `0z1702`, startup diagnostics changes and release
   fragment, updated inventory/memory notes at `d438b47cb`; the full
   post-push remediation baseline passes.
+- [x] Replace public mutable path, file, privacy, capability, honeypot,
+  coverage, database-list, Soulseek metadata, and VPN ingress collections with
+  read-only snapshots or defensive copies; preserve the upstream
+  `Database.List` array signature.
+- [x] Add mutation-rejection and enforcement-preservation regressions, register
+  `check-public-policy-immutability.sh`, and build the .NET 10 VPN agent with
+  zero warnings.
+- [x] Pass the focused policy tests (3/3), full Release solution suite (74
+  application, 5,746 unit, 289 integration), `./bin/lint`, and VPN agent
+  Release build (zero warnings). The first full run had one allocation-budget
+  test failure; it passed six isolated reruns and the complete suite rerun.
+- [x] Refresh candidate counts to 12,414 red-team and 834 mutable-ownership
+  review candidates; these are scanner queues, not confirmed bug counts.
+- [ ] Preview the release note, commit and push the batch, then rerun the full
+  remediation baseline.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.

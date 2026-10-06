@@ -42,27 +42,27 @@ public static partial class PathGuard
     /// <summary>
     /// Characters forbidden in filenames.
     /// </summary>
-    public static readonly char[] ForbiddenChars = { '<', '>', ':', '"', '|', '?', '*', '\0' };
+    public static IReadOnlyList<char> ForbiddenChars { get; } = Array.AsReadOnly(new[] { '<', '>', ':', '"', '|', '?', '*', '\0' });
 
     /// <summary>
     /// Dangerous file extensions that may contain executable code.
     /// </summary>
-    public static readonly string[] DangerousExtensions =
+    public static IReadOnlyList<string> DangerousExtensions { get; } = Array.AsReadOnly(new[]
     {
         ".exe", ".bat", ".cmd", ".com", ".scr", ".pif", ".msi", ".dll",
         ".vbs", ".vbe", ".js", ".jse", ".ws", ".wsf", ".wsc", ".wsh",
         ".ps1", ".psm1", ".psd1", ".sh", ".bash", ".zsh", ".csh",
         ".py", ".pyw", ".rb", ".pl", ".php", ".jar", ".class",
-    };
+    });
 
     /// <summary>
     /// Safe audio file extensions.
     /// </summary>
-    public static readonly string[] SafeAudioExtensions =
+    public static IReadOnlyList<string> SafeAudioExtensions { get; } = Array.AsReadOnly(new[]
     {
         ".flac", ".mp3", ".ogg", ".opus", ".m4a", ".aac", ".wav", ".wma",
         ".ape", ".wv", ".tta", ".alac", ".aiff", ".aif",
-    };
+    });
 
     [GeneratedRegex(@"^[a-zA-Z]:")]
     private static partial Regex WindowsDriveRegex();

@@ -1755,15 +1755,17 @@ static class AppConfig
     public static string VpnTable { get; } = Env.GetAny(["SLSKDN_VPN_TABLE", "SLSKD_VPN_TABLE"], "51820");
     public static string TunnelService { get; } = Env.Get("SLSKDN_VPN_TUNNEL_SERVICE", TunnelType == "wireguard" ? $"wg-quick@{VpnIface}" : "");
     public static string ProviderGateway { get; } = Env.Get("PF_GATEWAY", TunnelType == "wireguard" ? "10.2.0.1" : "");
-    public static string[] LocalCidrs { get; } = Env.GetAny(["SLSKDN_LOCAL_CIDRS", "SLSKD_LOCAL_CIDRS"], "127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16")
-        .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    public static IReadOnlyList<string> LocalCidrs { get; } = Array.AsReadOnly(
+        Env.GetAny(["SLSKDN_LOCAL_CIDRS", "SLSKD_LOCAL_CIDRS"], "127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     public static DirectoryInfo StateDir { get; } = new(Env.Get("SLSKDN_VPN_STATE_DIR", "/var/lib/slskdN-vpn"));
     public static DirectoryInfo IngressConfigDir { get; } = new(Env.Get("SLSKDN_VPN_INGRESS_CONFIG_DIR", "/etc/wireguard/slskdN-vpn-ingress"));
     public static DirectoryInfo StaticForwardDir { get; } = new(Env.GetAny(["SLSKDN_VPN_STATIC_FORWARD_DIR", "VPN_STATIC_FORWARD_DIR"], "/etc/slskdN-vpn/static-forwards"));
     public static string IngressHostPrefix { get; } = Env.Get("SLSKDN_VPN_INGRESS_HOST_PREFIX", "10.251");
     public static string IngressNamespacePrefix { get; } = Env.Get("SLSKDN_VPN_INGRESS_NAMESPACE_PREFIX", "slskdNpf");
-    public static string[] LegacyIngressNamespacePrefixes { get; } = Env.Get("SLSKDN_VPN_LEGACY_INGRESS_NAMESPACE_PREFIXES", "slskdpf")
-        .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    public static IReadOnlyList<string> LegacyIngressNamespacePrefixes { get; } = Array.AsReadOnly(
+        Env.Get("SLSKDN_VPN_LEGACY_INGRESS_NAMESPACE_PREFIXES", "slskdpf")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     public static string PortForwardBackend { get; } = Env.Get("VPN_PORT_FORWARD_BACKEND", "natpmp");
     public static string IngressMode { get; } = Env.Get("SLSKDN_VPN_INGRESS_MODE", "core").Trim().ToLowerInvariant();
     public static int CompactUdpPort { get; } = Env.GetInt("SLSKDN_VPN_COMPACT_UDP_PORT", 0);

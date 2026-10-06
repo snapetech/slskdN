@@ -28,7 +28,8 @@ public class Database
     public static Database Transfers { get; } = new Database { Name = nameof(Transfers).ToLower() };
     public static Database Messaging { get; } = new Database { Name = nameof(Messaging).ToLower() };
     public static Database Events { get; } = new Database { Name = nameof(Events).ToLower() };
-    public static Database[] List { get; } = [Search, Transfers, Messaging, Events];
+    private static readonly Database[] _databases = [Search, Transfers, Messaging, Events];
+    public static Database[] List => (Database[])_databases.Clone();
 
     public required string Name { get; init; }
 
