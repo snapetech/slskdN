@@ -56,6 +56,19 @@ was needed.
 updated state and query the DOM again. Do not assert against a node reference
 captured before a render that can replace the trigger.
 
+### 0z1709. Preserve Other UI Imports When Replacing Buttons (2026-10-06)
+
+**What went wrong:** While switching a component's buttons to the shared
+`TooltipButton`, the `Popup` import was removed even though the same component
+still uses popups for result-row actions.
+
+**Why:** The import edit focused on the button toolbar and did not account for
+other controls lower in the component.
+
+**Prevention:** Search the entire component for every imported symbol before
+removing UI imports, then run focused frontend lint and test checks after the
+replacement.
+
 ### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
 
 **What went wrong:** A new policy-collection regression used an unqualified
