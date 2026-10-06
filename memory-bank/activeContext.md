@@ -19186,3 +19186,30 @@ and post-push remediation baseline pass. Remaining release steps are to push
 this changelog-preparation commit, run the guarded release gate, create the
 authorized `build-main-2026100521-slskdn.345` tag, and verify the hosted release
 artifacts and publishers. Design/evidence-gated follow-ups remain tracked.
+
+## Current state — Stable `.345` released; .NET 10 audit complete — 2026-10-06 06:32 UTC
+
+All first-party app, test, VPN-agent, and build-task projects target
+`net10.0`. MonoTorrent's compatible `net8.0` package asset and Mono.Nat's
+`net6.0` asset are NuGet-selected library binaries, not first-party project
+targets. The vendored `slskNet.Runtime` source retains its upstream
+`netstandard2.0/2.1` library and `net8.0` tests/examples.
+
+Stable `.345` is published under `2026100521-slskdn.345` from trigger tag
+`build-main-2026100521-slskdn.345`. GitHub run `37413215709` completed
+successfully across all jobs. All six platform archives and published checksums
+passed `scripts/verify-release-artifacts.sh`; VPN helper assets and the Web
+bundle marker are present. AUR, COPR, Chocolatey, Nix, Homebrew, Docker main,
+Docker Omnibus Testers, Discord announcement, and the Launchpad PPA all
+completed. Launchpad and the public Jammy amd64 apt index contain
+`2026100521.slskdn.345-1ppa202610060437~jammy`. Workflow-generated stable
+package metadata commit `f8adf91ff` is included on local `main`.
+
+The local gate passed with 1,292 Web tests, 5,748 .NET unit tests, 74
+application smoke tests, 115 filtered unit smoke tests, and 40 integration
+smoke tests. Repository lint, release-note preview, and the remediation
+baseline also pass. The currently confirmed code-actionable remediation is
+complete. Keep T-908's sender trust and serving lifecycle, cross-node Party ID
+authority, real assistive-tech and device validation, WAN/resource and
+hidden-tab measurements, the original frontend network-change cause, and
+unconfirmed scanner candidates in the evidence/design-gated follow-up list.

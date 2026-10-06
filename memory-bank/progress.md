@@ -18825,3 +18825,36 @@ Moved the shipped `.344`-to-`HEAD` changelog entries into
 range preview passes; generated notes validate with 41 bullets from 18
 curated fragments. Identity and GitHub target checks pass. The guarded release
 gate and hosted publisher/artifact verification remain.
+
+## 2026-10-06 06:32 UTC — Audit .NET assets and verify stable `.345`
+
+Audited every C# project target. All first-party app, test, VPN-agent, and
+build-task projects already target `net10.0`. NuGet resolves MonoTorrent
+`3.9.0-alpha.unstable.rev0000` to its `net8.0` asset and Mono.Nat `3.0.4` to
+its `net6.0` asset for the `net10.0` app; these are compatible package assets,
+not application targets to retarget. The vendored `slskNet.Runtime` library
+keeps its upstream `netstandard2.0/2.1` targets and `net8.0` test/example
+projects.
+
+The guarded local release gate passed and trigger tag
+`build-main-2026100521-slskdn.345` completed as GitHub run `37413215709` with
+all jobs successful. The public release contains all six platform archives,
+checksums, support assets, VPN helper files, and the web bundle marker;
+`scripts/verify-release-artifacts.sh` passed. AUR, COPR, Chocolatey, Nix,
+Homebrew, both Docker images, the announcement, and the PPA publisher completed.
+Launchpad published the exact Jammy amd64 package
+`2026100521.slskdn.345-1ppa202610060437~jammy`; the same version is present in
+the public apt index. The `.344` PPA waiter had hit its three-hour timeout, but
+Launchpad later published `.344` at 02:05 UTC; `.345` superseded it at 06:24
+UTC. Its historical task now records both facts.
+
+The local gate passed with 1,292 Web tests, 5,748 .NET unit tests, 74
+application smoke tests, 115 filtered unit smoke tests, and 40 integration
+smoke tests; `./bin/lint`, release-note preview, the remediation baseline, and
+hosted artifact checks also passed. The artifact verifier first encountered
+the nearly full local `/tmp`; retrying with `TMPDIR` on the main filesystem
+passed. The release workflow's generated metadata commit `f8adf91ff` was
+fast-forwarded into local `main`. Current whole-product follow-ups require the
+T-908 trust/serving design or external accessibility, WAN, resource,
+throttling, and network-change evidence; unreviewed scanner queues remain
+candidates, not confirmed defects.

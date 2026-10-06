@@ -180,12 +180,33 @@
   preview. Generated stable release notes validate with 41 bullets from 18
   curated fragments; the candidate tag is
   `build-main-2026100521-slskdn.345`.
-- [ ] Finish remediation and the stable release gate, then create `.345` and
-  verify all hosted artifacts before reporting the release complete.
-- [ ] Continue the code-backed whole-product remediation. T-908 lifecycle,
-  global Party ID authority, accessibility, WAN/resource measurements,
-  hidden-tab throttling, frontend network-change root cause, and broad review
-  queues remain open or evidence-gated.
+- [x] Audit .NET targets and MonoTorrent assets. All first-party app, test,
+  VPN-agent, and build-task projects target `net10.0`. MonoTorrent
+  `3.9.0-alpha.unstable.rev0000` supplies its compatible `net8.0` asset;
+  Mono.Nat `3.0.4` supplies `net6.0` and .NET Standard assets, with NuGet
+  selecting `net6.0` for the .NET 10 app. These package TFMs are compatible
+  library asset choices, not first-party projects requiring retargeting.
+  Vendored `slskNet.Runtime` keeps its upstream `netstandard2.0/2.1` library
+  and `net8.0` test/example targets.
+- [x] Finish the stable `.345` release. The guarded local gate passed, trigger
+  tag `build-main-2026100521-slskdn.345` was pushed, and release workflow
+  `37413215709` completed successfully. GitHub published all six platform
+  archives, checksums, support files, VPN helper payload, and web bundle marker;
+  `scripts/verify-release-artifacts.sh` passed. AUR, COPR, PPA, Chocolatey,
+  Nix, Homebrew, both Docker images, and the release announcement all
+  completed. The exact Jammy PPA binary
+  `2026100521.slskdn.345-1ppa202610060437~jammy` is Published in Launchpad and
+  present in the public apt index.
+- [x] Complete the currently confirmed code-actionable whole-product
+  remediation. The final baseline passes with 25 async-void, 0 silent-catch,
+  216 callback/event, 429 remote-text, 12,448 red-team, and 834
+  mutable-ownership candidates; these scanner queues are not confirmed defect
+  counts.
+- [ ] Resolve the remaining design- and evidence-gated follow-ups: T-908's
+  serving/authentication lifecycle, cross-node Party ID authority, live
+  assistive-technology and device validation, WAN/resource measurements,
+  hidden-tab throttling evidence, the original frontend network-change cause,
+  and review-queue candidates that have not been confirmed as defects.
 
 ### Post-.344 Pod storage and content API diagnostic safety — 2026-10-05
 
@@ -214,15 +235,16 @@
   remediation baseline against the pushed branch (`f6ef41af3`).
 - [x] Verify `.344`'s six platform archives, published SHA256 checksums, and
   required support assets with `verify-release-artifacts.sh`.
-- [ ] Finish `.344` publisher verification. Every hosted job except
-  `Publish to PPA (Main)` has succeeded; its Launchpad publication waiter is
-  still running. Its source is Published, but the Jammy AMD64 build remains
-  `Needs building`. `.344` is immutable and does not contain these post-tag fixes.
-- [ ] Ship these post-tag fixes in stable `.345` after the release gate passes.
-- [ ] Continue code-backed remediation. T-908, global Party ID authority,
-  accessibility, WAN/resource measurements, hidden-tab throttling, frontend
-  network-change root cause, and broad review queues remain open or
-  evidence-gated.
+- [x] Finish `.344` publisher verification. Workflow `37370248319` completed
+  successfully overall; its PPA waiter reached its three-hour timeout, then
+  Launchpad later published exact Jammy package
+  `2026100520.slskdn.344-1ppa202610052137~jammy` at 2026-10-06 02:05 UTC.
+  Stable `.345` superseded that package at 06:24 UTC. `.344` remains immutable.
+- [x] Ship these post-tag fixes in stable `.345`; the release trigger is
+  `build-main-2026100521-slskdn.345` and all hosted release checks passed.
+- [x] Complete the confirmed code-backed remediation through `.345`; remaining
+  design- and evidence-gated work is listed in the active `.345` follow-up
+  above, and unreviewed scanner queues are not treated as confirmed defects.
 
 ### Post-.344 MusicBrainz content-link resilience — 2026-10-05
 
