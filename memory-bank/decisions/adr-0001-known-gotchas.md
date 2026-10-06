@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1740. Honor The Configured Temporary Directory In Validation Scripts (2026-10-06)
+
+**What went wrong:** `check-council-active-backlog.sh` wrote scratch files to
+hardcoded `/tmp` paths. The release gate failed when the shared `/tmp` filesystem
+was full, even though the release run had been pointed at disk-backed temporary
+storage.
+
+**Why:** Hardcoded temporary paths bypass `TMPDIR` and couple validation to the
+capacity of a machine-wide temporary filesystem.
+
+**Prevention:** Create validation scratch files with `mktemp`, register cleanup
+with `trap`, and avoid assuming that `/tmp` has available space.
+
 ### 0z1739. Do Not Pass Async Lambdas To Action-Based Change Events (2026-10-06)
 
 **What went wrong:** `OptionsMonitor.OnChange` accepts an `Action`, but
