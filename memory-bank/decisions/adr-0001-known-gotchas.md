@@ -40511,3 +40511,17 @@ Testing Library import list from its neighboring test file.
 
 **Prevention:** Check every newly used test helper against the file's imports,
 then run the focused test and lint commands for the edited test file.
+
+### 0z1727. Scope Queries When A Modal Repeats Its Trigger Label (2026-10-06)
+
+**What went wrong:** A room modal test used a global role query for “Create
+Room” after opening the modal. Both the launch control and the modal submit
+button remained in the rendered accessibility tree, so the query matched two
+buttons.
+
+**Why:** The active modal was portaled while the trigger remained mounted
+outside it; the test assumed the background control would disappear from
+queries.
+
+**Prevention:** Scope modal action queries to the rendered modal container
+with `within`, especially when the trigger and submit action share a label.
