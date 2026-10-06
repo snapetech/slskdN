@@ -40500,3 +40500,14 @@ different conditions.
 **Prevention:** Derive the icon, visible text, accessible name, tooltip, and
 callback from the same action predicate. Cover completed searches both before
 and after their results have loaded.
+
+### 0z1726. Import Test Helpers Used By New Regressions (2026-10-06)
+
+**What went wrong:** A new modal regression called `waitFor` without importing
+it, so the test failed at runtime and ESLint also reported the undefined name.
+
+**Why:** The test edit copied the component assertions but not the complete
+Testing Library import list from its neighboring test file.
+
+**Prevention:** Check every newly used test helper against the file's imports,
+then run the focused test and lint commands for the edited test file.
