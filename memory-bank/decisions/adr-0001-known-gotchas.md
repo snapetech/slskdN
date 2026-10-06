@@ -40291,3 +40291,17 @@ them as arbitrary strings.
 **Prevention:** Match either the complete source path or the source path
 followed by a separator. Add a sibling-prefix regression case whenever path
 mapping rules change.
+
+### 0z1697. Explain MediaCore Statistics Actions And Their Impact (2026-10-06)
+
+**What went wrong:** MediaCore exposed statistics-load, cache-clear, and reset
+actions without tooltips. Clearing the retrieval cache can increase follow-up
+DHT traffic, while resetting statistics removes accumulated operational data.
+
+**Why:** The dashboard's repeated controls were added outside the shared
+tooltip-backed action pattern, leaving their scope and side effects visible
+only after reading nearby copy or discovering the result.
+
+**Prevention:** Use the shared tooltip button for every dashboard action and
+state the data it loads or changes. Call out network-impacting cache actions
+in the tooltip as well as in the surrounding warning.
