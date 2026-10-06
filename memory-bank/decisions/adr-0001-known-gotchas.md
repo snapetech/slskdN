@@ -40357,3 +40357,18 @@ parent's conditional view rendering.
 **Prevention:** Trace component owners and conditional render branches before
 reporting duplicated UI. Verify whether the elements mount simultaneously,
 and exercise each view when confirmation behavior differs by presentation.
+
+### 0z1716. Explain VPN Gateway And Port Forwarding Actions Before Use (2026-10-06)
+
+**What went wrong:** VPN Gateway configuration controls for adding and removing
+destinations and services, saving policy, and creating or stopping port
+forwarding had no explanatory hover guidance.
+
+**Why:** These Pod screens used raw Semantic UI buttons while tooltip guidance
+was added to other feature areas, so the purpose and effects of configuration
+and tunnel actions were inconsistent across the product.
+
+**Prevention:** Use `TooltipButton` for standalone controls and preserve
+existing Popup triggers. Explain what configuration is changed and when a
+forwarding action opens or closes the local-to-remote tunnel; test tooltip
+content without triggering the action.
