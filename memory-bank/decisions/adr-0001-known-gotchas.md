@@ -40265,3 +40265,16 @@ server operations.
 current result schema. Test the visible status and explanation, and label
 local report generation as review or preview rather than implying external
 actions occurred.
+
+### 0z1695. Associate Semantic Form Labels With Their Controls (2026-10-06)
+
+**What went wrong:** New Semantic UI form controls displayed labels visually,
+but the generated labels had no `for` association and the inputs had no
+accessible names. Role-based tests could not find the controls by their
+visible labels.
+
+**Why:** Semantic UI does not infer a control id for a label from its text.
+
+**Prevention:** Give each form control a stable id and associate the label with
+that id (or provide a matching explicit accessible name). Verify controls by
+their accessible role and name in tests.
