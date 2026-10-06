@@ -4,6 +4,20 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1731. Use Native Buttons For Directory Tree Actions (2026-10-06)
+
+**What went wrong:** Directory selection used a focusable span with
+`role="button"`, while folder expansion attached a click handler directly to
+an icon. The controls needed custom keyboard behavior and were not exposed as
+ordinary buttons to assistive technology.
+
+**Why:** The directory row was styled as inline text and an icon, so the native
+button semantics were skipped when pointer behavior was added.
+
+**Prevention:** Use native buttons for folder selection and expansion, reset
+their visual styles to match the row, and give each action a Semantic UI Popup
+with an accessible name and keyboard regression.
+
 ### 0z1730. Keep Tab Close Actions Outside The Tab Button (2026-10-06)
 
 **What went wrong:** A Messages tab placed a close action with `role="button"`
