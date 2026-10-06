@@ -13,6 +13,9 @@ cd "$repo_root"
 
 report="${COUNCIL_OUT_DIR:-.council}/active-bughunt.md"
 backlog="docs/dev/bug-council-active-backlog.md"
+untriaged_output="$(mktemp)"
+counts_output="$(mktemp)"
+trap 'rm -f "$untriaged_output" "$counts_output"' EXIT
 failed=0
 
 fail() {
@@ -31,13 +34,12 @@ if [[ ! -f "$backlog" ]]; then
   exit 1
 fi
 
-if rg -n '\| `[^`]+` \| [0-9]+ \| Untriaged \|' "$backlog" >/tmp/council-active-backlog-untriaged.$$ 2>/dev/null; then
+if rg -n '\| `[^`]+` \| [0-9]+ \| Untriaged \|' "$backlog" >"$untriaged_output" 2>/dev/null; then
   fail "active backlog contains untriaged sections"
-  sed 's/^/  /' /tmp/council-active-backlog-untriaged.$$ >&2
+  sed 's/^/  /' "$untriaged_output" >&2
 else
   pass "active backlog has no untriaged sections"
 fi
-rm -f /tmp/council-active-backlog-untriaged.$$
 
 awk '
   /^## / {
@@ -59,7 +61,7 @@ awk '
       print section "\t" count
     }
   }
-' "$report" >/tmp/council-active-backlog-counts.$$
+' "$report" >"$counts_output"
 
 while IFS=$'\t' read -r section count; do
   if rg -n --fixed-strings "| \`$section\` | $count |" "$backlog" >/dev/null; then
@@ -67,9 +69,7 @@ while IFS=$'\t' read -r section count; do
   else
     fail "active backlog missing or stale for '$section' count $count"
   fi
-done </tmp/council-active-backlog-counts.$$
-
-rm -f /tmp/council-active-backlog-counts.$$
+done <"$counts_output"
 
 if [[ "$failed" -ne 0 ]]; then
   printf '\nActive backlog check failed. Run scripts/run-council-active-bughunt.sh, then update %s.\n' "$backlog" >&2
