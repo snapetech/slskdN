@@ -40372,3 +40372,16 @@ and tunnel actions were inconsistent across the product.
 existing Popup triggers. Explain what configuration is changed and when a
 forwarding action opens or closes the local-to-remote tunnel; test tooltip
 content without triggering the action.
+
+### 0z1717. Match Closing Tags When Converting Button Components (2026-10-06)
+
+**What went wrong:** Converting the VPN policy save control from `Button` to
+`TooltipButton` left its old closing tag in place, causing the component to
+fail JSX parsing and its test file to report zero collected tests.
+
+**Why:** The component name was changed at the opening tag but not at the
+matching closing tag.
+
+**Prevention:** When replacing a JSX component, update and inspect both tags
+before running the focused test file; treat a parse or collection error as a
+failed check even when other test files pass.
