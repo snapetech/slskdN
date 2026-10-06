@@ -40345,14 +40345,15 @@ equivalent to the shared explanatory popup pattern.
 its effect and purpose. State network and data-removal impacts, preserve
 existing explanatory Popup triggers, and verify hover never starts an action.
 
-### 0z1715. Render One Wishlist Deletion Confirmation (2026-10-06)
+### 0z1715. Check Wishlist View Branches Before Reporting Duplicate Dialogs (2026-10-06)
 
-**What went wrong:** `WishlistItemRow` renders two identical `Confirm` dialogs
-for deletion, both driven by the same `confirmDelete` state. Clicking Delete
-opens both dialogs for one action.
+**What went wrong:** A review treated the table-row and card `Confirm` dialogs
+as simultaneous duplicates. The parent renders `WishlistItemRow` or
+`WishlistItemCard` based on `viewMode`, so only one confirmation is mounted.
 
-**Why:** Confirmation markup was left both beside the row action and after the
-row's expanded-search content.
+**Why:** The two component definitions were inspected without tracing the
+parent's conditional view rendering.
 
-**Prevention:** Keep one confirmation dialog per destructive action and test
-the open state for exactly one accessible dialog.
+**Prevention:** Trace component owners and conditional render branches before
+reporting duplicated UI. Verify whether the elements mount simultaneously,
+and exercise each view when confirmation behavior differs by presentation.
