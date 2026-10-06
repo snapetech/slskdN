@@ -58,6 +58,28 @@
   suite passes 1,253 tests; Web lint/build, all 6,109 .NET Release tests, and
   `./bin/lint` pass. The initial .NET run hit a full shared `/tmp` tmpfs; the
   full rerun passed with `TMPDIR` redirected to the main filesystem.
+- [x] Add action-specific guidance and accessible names across the Pod
+  workspace, VPN gateway, and Port Forwarding controls. Focused regressions
+  cover discovery and membership actions, tunnel start/stop, policy changes,
+  and no side effects on hover (13 tests pass); changed-file Web lint passes.
+- [x] Add purpose-specific tooltips to all 64 MediaCore Pod actions and all 27
+  ContentID registry actions. Disabled controls retain hover guidance; focused
+  MediaCore component coverage and changed-file Web lint pass (13 tests pass).
+- [x] Complete the cross-product action-guidance pass across Browse, Chat,
+  Rooms, Contacts, Messages, search results, shared files, transfers, the
+  player, and traffic activity. Replace the room-name comparator so ascending
+  and descending string and numeric orders match the announced direction.
+- [x] Keep Semantic UI `content` labels as the accessible names in
+  `TooltipButton` when longer tooltips are supplied; cover the wrapper and
+  Lidarr sync action with a regression.
+- [x] Audit frontend JSX action controls: no remaining standalone native or
+  Semantic UI action button lacks Popup guidance after classifying wrapper and
+  caller-composed controls; no interactive Icon elements remain. Live route
+  inspection is still environment-gated.
+- [x] Pass the complete Web suite (1,292 tests across 199 files), Web lint and
+  production build, Release .NET solution tests (6,109 tests: 74 app, 5,746
+  unit, 289 integration), `./bin/lint`, package metadata validation, release
+  note validator tests, and `git diff --check`.
 - [x] Refresh active-council counts to 429 remote-text and 12,442 red-team
   candidates after the post-push baseline found the prior inventory stale.
   These scanner matches remain review queues, not confirmed defects.
@@ -135,10 +157,11 @@
   review candidates; these are scanner queues, not confirmed bug counts.
 - [x] Preview the `.344` to `HEAD` release note; commit and push the batch at
   `08b080cd1`; pass the complete post-push remediation baseline.
-- [ ] Complete `.344` publisher verification. The exact Jammy AMD64 build
-  `33815555` is `Successfully built`, but the published-binaries query and
-  public apt index do not contain its exact version yet. Create stable `.345`
-  only after that binary is published.
+- [x] Verify `.344`'s exact Jammy AMD64 binary in Launchpad's Published
+  Binaries API and the public apt index:
+  `2026100520.slskdn.344-1ppa202610052137~jammy`; `.344` remains immutable.
+- [ ] Finish remediation and the stable release gate, then create `.345` and
+  verify all hosted artifacts before reporting the release complete.
 - [ ] Continue the code-backed whole-product remediation. T-908 lifecycle,
   global Party ID authority, accessibility, WAN/resource measurements,
   hidden-tab throttling, frontend network-change root cause, and broad review

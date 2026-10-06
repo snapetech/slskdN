@@ -19045,3 +19045,79 @@ change, then create and verify stable `.344` and all required hosted publisher
 jobs. Continue the evidence-gated T-908 sender lifecycle, global Party ID
 authority, accessibility, WAN/resource measurements, hidden-tab throttling,
 frontend network-change root cause, and the broad discovery queues afterward.
+## Current state — Pod and MediaCore action guidance; `.344` PPA confirmed — 2026-10-06 02:28 UTC
+
+The first-party .NET audit remains complete: application, test, and build-tool
+projects under `src`, `tests`, and `tools` target `net10.0`. MonoTorrent
+3.9.0-alpha.unstable.rev0000 provides a compatible `net8.0` asset; its
+Mono.Nat 3.0.4 dependency provides `net6.0` and .NET Standard assets. NuGet
+selects a compatible dependency asset for the `net10.0` app. There is no
+first-party `net6.0` project to retarget and no Mono.Nat release with a newer
+target to move to.
+
+Stable `.344` remains immutable. Launchpad's Published Binaries API and the
+public Jammy AMD64 apt index now both contain
+`2026100520.slskdn.344-1ppa202610052137~jammy` (SHA-256
+`69ab5a70b26fb7670827fc7a51ba7a13cc6f0ae4f80d3fca789607cb2271f5e0`). The
+prior-release PPA prerequisite is clear; create `.345` only after the broader
+remediation and final release gate are complete.
+
+The Pod workspace, VPN Gateway, and Port Forwarding controls now have
+purpose-specific Popup guidance and accessible names. Discovery explains its
+service request, saving a discovery result clarifies that it does not join,
+and port forwarding states that it creates a loopback-only listener through a
+selected VPN pod. MediaCore's Pod panel has action-specific guidance on all 64
+buttons, and the ContentID screen has guidance on all 27 actions. The custom
+MediaCore button wrapper now keeps disabled-action tooltips hoverable.
+
+Focused Pod/VPN/Port Forwarding regressions pass (13 tests across three files).
+Focused MediaCore/index regressions pass (13 tests across four files), and
+ESLint passes on all changed UI files. `git diff --check` passes. Full Web
+suite/build, full .NET suite, repository lint, release-note preview, identity
+scan, and remediation baseline remain for the final validated tree.
+
+Gotchas `0z1716`–`0z1722` were added in local documentation commits. The Pod
+and MediaCore source/tests, changelog, tasks, and release fragments are still
+uncommitted. Continue the UI audit at the player controls and other confirmed
+action surfaces; then run the full gate, commit/push the final tree, create the
+authorized stable `.345` release, and verify its hosted artifacts.
+
+## Previous state — Collections and Wishlist guidance validated; continue UI audit — 2026-10-06 02:13 UTC
+
+## Current state — Cross-product action audit validated; stable `.345` release pending — 2026-10-06 03:07 UTC
+
+The repository-wide project-file scan found no `net6.0` project target. All
+first-party application, test, and build-tool projects under `src`, `tests`,
+and `tools` target `net10.0`. MonoTorrent 3.9.0 provides a `net8.0` package
+asset compatible with the application. Its transitive Mono.Nat 3.0.4 package
+provides `net6.0` and .NET Standard assets; NuGet selects a compatible asset
+for `net10.0`. Other `net8.0` test/example projects are in the pinned
+`vendor/slskNet.Runtime` source mirror and remain unchanged by its sync
+contract.
+
+The cross-product action-guidance pass now covers Browse, Chat, Rooms,
+Contacts, Messages, search, shared files, transfers, player actions, traffic
+activity, Pods, VPN gateway, port forwarding, and MediaCore. Message-tab close
+actions are separate keyboard-focusable buttons. The room sort comparator now
+matches its ascending/descending label for strings and numbers. `TooltipButton`
+preserves Semantic UI's short `content` label when tooltip copy is longer.
+Source scans found no unwrapped standalone native/Semantic UI action buttons
+or interactive Icon elements after composed wrappers were inspected.
+
+Validation passes: Web `vitest` 1,292/1,292 across 199 files, Web lint/build,
+full .NET Release suite 6,109 (74 app, 5,746 unit, 289 integration),
+`./bin/lint`, packaging metadata validation, release-note validator tests,
+local identity scan, and `git diff --check`. Runtime live-route inspection was
+unavailable because its environment credentials are unset.
+
+Stable `.344` is immutable and its exact Jammy AMD64 PPA package is published.
+The `.345` candidate is `2026100521-slskdn.345`. The changelog section and
+release fragments are prepared. Remaining steps: preview release notes from
+`.344`, run the full post-push remediation/release gates, commit and push all
+local commits and worktree changes to `snapetech/slskdN`, create the guarded
+stable tag, and verify the hosted release artifacts and publishers.
+
+Physical-device and assistive-technology evidence, WAN/resource measurement,
+actual hidden-tab throttling, T-908 sender lifecycle, cross-node Party ID
+authority, the original frontend network-change cause, and broad untriaged
+scanner queues remain open or evidence-gated.

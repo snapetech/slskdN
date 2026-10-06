@@ -18704,3 +18704,66 @@ need to trace mutually exclusive view branches.
 Launchpad build `33815555` for `.344` is successful, but its exact binary is
 still absent from the published-binaries query and public Jammy AMD64 index.
 The next stable tag remains gated on that publication.
+## 2026-10-06 02:28 UTC — Explain Pod and MediaCore actions; verify `.344` PPA
+
+Added action-specific tooltips and accessible names to Pod workspace, VPN
+Gateway, and Port Forwarding controls. The guidance explains discovery-service
+queries, local saves that do not join a pod, membership effects, policy draft
+scope, and localhost-only port forwarding. Focused regressions pass 13 tests
+across the three Pod component files, including no mutation on hover.
+
+Added action-specific tooltips to all 64 MediaCore Pod controls and all 27
+ContentID registry controls. DHT reads/writes, multi-ID network impact, local
+cleanup and analysis, membership changes, and key handling are described at
+the point of action. The custom MediaCore button wrapper now keeps disabled
+action guidance hoverable. Focused MediaCore regressions pass 13 tests across
+four files; ESLint passes on all changed UI files and `git diff --check` passes.
+
+Added user-facing release fragments and Unreleased changelog entries for the
+Pod and MediaCore changes. Updated the active task handoff. Confirmed exact
+`.344` Jammy AMD64 publication in Launchpad's Published Binaries API and the
+public apt index: version
+`2026100520.slskdn.344-1ppa202610052137~jammy`, SHA-256
+`69ab5a70b26fb7670827fc7a51ba7a13cc6f0ae4f80d3fca789607cb2271f5e0`.
+`.344` stays immutable; the `.345` release remains gated on the finished
+remediation and final full gate.
+
+Gotchas `0z1716`–`0z1722` were added and committed locally as required before
+the related fixes. The product changes, tests, changelog, release fragments,
+and memory handoff are still local. Full suite/build, repository lint,
+release-note preview, identity scan, and final remediation baseline remain.
+
+## 2026-10-06 03:07 UTC — Complete cross-product action controls and sort regression
+
+Finished the accessible action-guidance pass across Browse, Chat, Rooms,
+Contacts, Messages, shared files, search results, transfers, player actions,
+and transfer activity. Replaced the nested Messages tab close control with a
+separate keyboard-focusable button. A complete frontend JSX source scan found
+no remaining standalone native or Semantic UI action buttons without Popup
+guidance after classifying wrappers and caller-composed controls; the
+interactive Icon scan is empty. Runtime route inspection could not run because
+the live audit credentials are not configured in this environment.
+
+The sort-direction regression uncovered an existing bug: the room-name
+ascending branch used the reverse comparison. A single direction-aware
+comparator now handles both string and numeric sorts; regression coverage pins
+both directions. `TooltipButton` now preserves Semantic UI's concise `content`
+label as its accessible name when longer tooltip copy is provided, fixing the
+Lidarr sync button's name.
+
+Validation passed: Web `vitest` 1,292/1,292 across 199 files, Web ESLint,
+production build, `dotnet test slskd.sln -c Release --no-restore` (6,109 total:
+74 application, 5,746 unit, 289 integration), `./bin/lint`, packaging metadata
+validation, release-note validator tests, and `git diff --check`. Test temp
+files were placed under `/var/tmp` because `/tmp` is full.
+
+Added and locally committed gotchas `0z1734` and `0z1735` for content-based
+button names and checking shared-wrapper scope before introducing prop
+bindings. Stable `.344`'s exact Jammy AMD64 package is confirmed published;
+the current candidate is stable `.345` (`2026100521-slskdn.345`). Remaining
+local work: run the release-note range preview, complete the post-push
+remediation and release gates, push all local commits and changes, tag `.345`
+through the guarded helper, and verify hosted artifacts. Physical/assistive
+technology evidence, WAN and resource measurements, actual background-tab
+throttling, T-908 sender lifecycle, cross-node Party ID authority, and the
+original frontend network-change cause remain open or evidence-gated.
