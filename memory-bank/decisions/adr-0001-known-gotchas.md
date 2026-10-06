@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1730. Keep Tab Close Actions Outside The Tab Button (2026-10-06)
+
+**What went wrong:** A Messages tab placed a close action with `role="button"`
+inside the tab's native button. The nested action was invalid interactive
+markup and was removed from keyboard tab order.
+
+**Why:** The tab's main activation and its close action were styled as one
+control, obscuring that they need separate focus and activation behavior.
+
+**Prevention:** Render tab selection and tab close as sibling buttons in one
+layout wrapper. Give each control its own accessible name, explanatory Popup,
+and regression for keyboard access and action isolation.
+
 ### 0z1729. Re-hover After Dynamic Tooltip Content Changes (2026-10-06)
 
 **What went wrong:** A UI regression hovered a toggle, clicked it to change its
