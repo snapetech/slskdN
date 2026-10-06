@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1739. Do Not Pass Async Lambdas To Action-Based Change Events (2026-10-06)
+
+**What went wrong:** `OptionsMonitor.OnChange` accepts an `Action`, but
+`Application` subscribed with an `async` lambda that awaited its update task.
+The compiler therefore created an `async void` callback; exceptions escaping
+before the update method's internal catch had no observable task.
+
+**Why:** The lambda syntax made the asynchronous work look awaited even though
+the delegate contract returns `void`.
+
+**Prevention:** Keep event subscriptions synchronous and explicitly observe
+the returned task with `TaskObservation` or an observed background-task
+helper. Add a regression that injects an early asynchronous failure and
+verifies it is reported.
+
 ### 0z1737. Observe Tasks Started From Synchronous Event Handlers (2026-10-06)
 
 **What went wrong:** The `Program.LogEmitted` event handler called the
