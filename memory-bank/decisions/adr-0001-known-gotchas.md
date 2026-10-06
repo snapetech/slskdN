@@ -40292,7 +40292,7 @@ them as arbitrary strings.
 followed by a separator. Add a sibling-prefix regression case whenever path
 mapping rules change.
 
-### 0z1697. Explain MediaCore Statistics Actions And Their Impact (2026-10-06)
+### 0z1711. Explain MediaCore Statistics Actions And Their Impact (2026-10-06)
 
 **What went wrong:** MediaCore exposed statistics-load, cache-clear, and reset
 actions without tooltips. Clearing the retrieval cache can increase follow-up
@@ -40305,3 +40305,16 @@ only after reading nearby copy or discovering the result.
 **Prevention:** Use the shared tooltip button for every dashboard action and
 state the data it loads or changes. Call out network-impacting cache actions
 in the tooltip as well as in the surrounding warning.
+
+### 0z1712. Check Gotcha Identifiers Across The Full Decision Record (2026-10-06)
+
+**What went wrong:** The MediaCore action-guidance gotcha reused identifier
+`0z1697`, which already belonged to an unrelated DHT diagnostic gotcha earlier
+in this file.
+
+**Why:** The identifier was chosen from a stale local sequence without
+searching the full, append-heavy decision record for existing occurrences.
+
+**Prevention:** Search all `### 0zNNNN` headings in this file before choosing
+an identifier, then verify the new identifier occurs exactly once before
+committing.
