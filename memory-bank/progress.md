@@ -18796,3 +18796,15 @@ private `Program.RaiseLogEmitted` event helper; it is test infrastructure, not
 a production callback. The backlog now records the confirmed SignalR task
 fix and this false positive. Re-run the full remediation baseline after
 pushing the batch.
+
+## 2026-10-06 03:43 UTC — Observe configuration change callback failures
+
+Replaced the `async void` lambda passed to `OptionsMonitor.OnChange` with a
+synchronous callback that observes `OptionsMonitor_OnChange` through
+`TaskObservation`. An injected disposed-semaphore failure confirms exceptions
+that occur before the handler's catch are logged instead of escaping the
+change event. Added a regression, a source guard, changelog text, and an
+operator-facing release-note fragment. Application lifecycle tests pass
+19/19; the full .NET Release suite passes 6,111 tests (74 application, 5,748
+unit, 289 integration), and `./bin/lint` passes. Push this batch, then rerun
+the release-note preview and full remediation baseline.

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -136,6 +137,50 @@ public class ApplicationLifecycleTests
                     It.IsAny<object?[]>(),
                     It.IsAny<System.Threading.CancellationToken>()),
                 Times.Once);
+        }
+        finally
+        {
+            application?.Dispose();
+            Log.Logger = originalLogger;
+        }
+    }
+
+    [Fact]
+    public void OptionsMonitor_ObservesFailuresBeforeUpdateHandlerCatch()
+    {
+        var sink = new CapturingLogSink();
+        var originalLogger = Log.Logger;
+        using var logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(sink)
+            .CreateLogger();
+        Log.Logger = logger;
+
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
+        Application? application = null;
+        try
+        {
+            application = CreateApplication(
+                optionsMonitor,
+                new ManagedState<State>(),
+                new ManagedState<ShareState>(),
+                new ManagedState<RelayState>(),
+                out _,
+                out _);
+
+            var optionsSyncRoot = (SemaphoreSlim)(typeof(Application)
+                .GetProperty("OptionsSyncRoot", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(application)
+                ?? throw new InvalidOperationException("Application.OptionsSyncRoot property was not found."));
+            optionsSyncRoot.Dispose();
+
+            var exception = Record.Exception(() => optionsMonitor.RaiseOnChange(new Options()));
+
+            Assert.Null(exception);
+            var failure = Assert.Single(
+                sink.Events,
+                logEvent => logEvent.RenderMessage().StartsWith("Unexpected failure escaped option update handler:", StringComparison.Ordinal));
+            Assert.Contains("ObjectDisposedException", failure.RenderMessage(), StringComparison.Ordinal);
         }
         finally
         {

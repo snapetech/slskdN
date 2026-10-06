@@ -19148,3 +19148,15 @@ fix and inventory update are ready. The callback/event candidate count is now
 216; its one new match is the regression's reflection call to the private log
 event raiser. Push this batch and rerun release-note and full remediation
 gates before continuing the remaining evidence-gated audit.
+
+## Current state — Observe configuration callback failures — 2026-10-06 03:43 UTC
+
+The options-change subscription no longer converts its task-returning update
+method into an `async void` callback. It now observes the task and logs
+sanitized exceptions that escape before the method's own handler. The
+failure-injection regression passes; the Application lifecycle suite passes
+19/19; the full .NET Release suite passes 6,111 tests (74 application, 5,748
+unit, 289 integration); repository lint passes. Gotcha `0z1739` is committed
+locally before the fix. The changelog and operator release fragment are
+prepared. Commit and push this batch, rerun the release preview and full
+remediation baseline, then continue remaining evidence-gated work.

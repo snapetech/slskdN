@@ -55,6 +55,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   guidance about prerequisites and network-visible operations.
 - Log broadcasts to connected clients now observe and report failed SignalR
   sends instead of dropping the background task failure.
+- Configuration update callbacks now observe and log unexpected failures that
+  occur before the option-update handler begins its own error handling.
 - Room-list sorting now matches its announced direction, and tooltip-backed
   controls keep concise action names separate from longer guidance.
 - Pod management, content-linking, and shadow-index endpoints now propagate

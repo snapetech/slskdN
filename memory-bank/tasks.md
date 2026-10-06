@@ -102,6 +102,11 @@
   delivery faults are reported. Application lifecycle tests pass 18/18, and
   the full .NET Release suite passes 6,110 tests (74 application, 5,747 unit,
   289 integration). `./bin/lint` passes.
+- [x] Replace the async-void `OptionsMonitor.OnChange` lambda with an
+  explicitly observed update task. A failure injected before the handler's
+  catch is reported without escaping the change event. Application lifecycle
+  tests pass 19/19; the full .NET Release suite passes 6,111 tests (74
+  application, 5,748 unit, 289 integration), and `./bin/lint` passes.
 - [ ] Rerun the full remediation baseline after this callback fix and refresh;
   the latest candidate counts are 25 async-void, 0 silent-catch, 216
   callback/event, 429 remote-text, 12,448 red-team, and 834 mutable ownership.

@@ -24,6 +24,7 @@ reject_literal src/slskd/Application.cs '_ = ApplicationHub.BroadcastOptionsAsyn
 reject_literal src/slskd/Application.cs '_ = Relay.Client.SynchronizeAsync'
 reject_literal src/slskd/Application.cs '_ = ApplicationHub.BroadcastStateAsync'
 reject_literal src/slskd/Application.cs '_programLogEmittedHandler = (_, log) => LogHub.EmitLogAsync(log);'
+reject_literal src/slskd/Application.cs 'OptionsMonitor.OnChange(async options => await OptionsMonitor_OnChange(options))'
 
 reject_literal src/slskd/Signals/SignalBus.cs '_ = handler.StartReceivingAsync'
 

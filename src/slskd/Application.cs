@@ -183,7 +183,14 @@ namespace slskd
             OptionsAtStartup = optionsAtStartup;
 
             OptionsMonitor = optionsMonitor;
-            RegisterChange(OptionsMonitor.OnChange(async options => await OptionsMonitor_OnChange(options)));
+            RegisterChange(OptionsMonitor.OnChange(options =>
+            {
+                _ = TaskObservation.Observe(
+                    OptionsMonitor_OnChange(options),
+                    ex => Log.Error(
+                        "Unexpected failure escaped option update handler: {Exception}",
+                        LoggingSanitizer.SanitizeExternalIdentifier(ex.ToString())));
+            }));
 
             IncomingSearchRequestSemaphore = new SemaphoreSlim(
                 initialCount: OptionsAtStartup.Throttling.Search.Incoming.Concurrency,
