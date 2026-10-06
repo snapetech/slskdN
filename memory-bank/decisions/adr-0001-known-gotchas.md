@@ -40455,3 +40455,19 @@ rule even though it had no context about the effect of each operation.
 **Prevention:** Supply specific tooltip text at each action call site. Separate
 local analysis and previews from registry mutation and DHT traffic; state when
 a batch repeats a lookup or write for every supplied ID.
+
+### 0z1723. Give Tooltip-Only Icon Buttons Accessible Names (2026-10-06)
+
+**What went wrong:** The shared `TooltipButton` displayed a Popup when an
+icon-only action supplied `tooltip`, but did not expose that action to screen
+readers as the button's accessible name. Standalone Semantic UI Popups also
+provided hover text without naming their icon-only trigger.
+
+**Why:** `TooltipButton` inferred its accessible name only from `aria-label`,
+`title`, or visible text. Tooltip content was handled separately, and a Popup
+does not automatically label its trigger.
+
+**Prevention:** For icon-only `TooltipButton` controls, use an explicit
+`aria-label` or use the concise tooltip text as a fallback name. For buttons
+wrapped in a standalone Popup, set `aria-label` on the trigger itself. Test
+both the hover guidance and the rendered button name.
