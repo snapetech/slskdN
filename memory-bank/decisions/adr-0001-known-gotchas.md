@@ -40399,3 +40399,16 @@ actions, so guidance and accessible names were applied inconsistently.
 explain every button's effect and reason in a Semantic UI Popup or
 `TooltipButton`. Preserve existing Popup triggers without wrapping them in a
 second tooltip component, and test the controls in the rendered workspace.
+
+### 0z1719. Match Semantic UI Modal Header Queries To Their Rendered Role (2026-10-06)
+
+**What went wrong:** A Pod modal regression queried `Modal.Header` as an
+accessible heading, but Semantic UI renders that component as a plain `div`
+with the `header` class.
+
+**Why:** The test inferred heading semantics from the component name instead
+of checking the rendered DOM contract.
+
+**Prevention:** Query Semantic UI modal titles by their rendered text unless
+the component is explicitly given heading semantics; reserve role queries
+for roles present in the actual DOM.
