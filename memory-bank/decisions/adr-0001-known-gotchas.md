@@ -40486,3 +40486,17 @@ the visible child text only as Popup content.
 **Prevention:** Give each call site action-specific tooltip text and keep the
 Popup and accessible button name consistent across responsive states. Test
 expanded, collapsed, and disabled renderings.
+
+### 0z1725. Keep Search Stop And Delete Labels Aligned With Their Actions (2026-10-06)
+
+**What went wrong:** The search detail action used completion state to choose
+the icon and callback, but also required result-loading state before changing
+its visible label from Stop to Delete. A completed search could therefore
+show Stop while the button deleted it.
+
+**Why:** The action's visual icon, text, and callback used related but
+different conditions.
+
+**Prevention:** Derive the icon, visible text, accessible name, tooltip, and
+callback from the same action predicate. Cover completed searches both before
+and after their results have loaded.
