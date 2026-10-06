@@ -4,6 +4,25 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1703. Keep Security Policy Collections Immutable (2026-10-06)
+
+**What went wrong:** Public `static readonly` arrays and get-only array
+properties exposed path-sanitization, file-classification, and VPN ingress
+policy as mutable process-wide state. A caller could change the forbidden
+filename characters, dangerous/safe extension lists, or local-network ACLs and
+alter later validation results.
+
+**Why:** `readonly` protects only the array reference; it does not protect the
+elements, and a getter returning the same array has the same ownership leak.
+The public-mutable-ownership review treated these policy arrays as data
+constants instead of executable security decisions.
+
+**Prevention:** Keep enforcement data in private immutable storage, expose a
+read-only view only when compatibility requires public inspection, and never
+run validation against a public mutable collection. Add regressions that
+mutate exposed views and prove the enforcement decisions remain unchanged;
+pin the public security-policy surfaces in the remediation baseline.
+
 ### 0z1700. Escape Exceptions At The CSRF Middleware Log Boundary (2026-10-05)
 
 **What went wrong:** The CSRF middleware escaped the request path but attached
