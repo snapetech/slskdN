@@ -94,8 +94,8 @@
   test failure; it passed six isolated reruns and the complete suite rerun.
 - [x] Refresh candidate counts to 12,414 red-team and 834 mutable-ownership
   review candidates; these are scanner queues, not confirmed bug counts.
-- [ ] Preview the release note, commit and push the batch, then rerun the full
-  remediation baseline.
+- [x] Preview the `.344` to `HEAD` release note; commit and push the batch at
+  `08b080cd1`; pass the complete post-push remediation baseline.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.

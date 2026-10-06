@@ -22,9 +22,10 @@ passed six isolated runs and the complete suite rerun.
 
 The latest council report has 215 callback/event, 426 remote-text, 12,414
 red-team, and 834 mutable-ownership candidates. These are review queues, not
-confirmed bugs. This batch adds `check-public-policy-immutability.sh` to the
-remediation baseline and a security release fragment; its commits and final
-post-push baseline are pending.
+confirmed bugs. The policy fix, regressions, security release fragment, and
+source guard are pushed at `08b080cd1`; the `.344` to `HEAD` release-note
+preview and full post-push remediation baseline pass. Continue classifying
+confirmed code-backed findings.
 
 Stable `.344` is immutable and its six platform archives/support assets pass
 checksum and version verification. The exact Launchpad source is Published,

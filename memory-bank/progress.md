@@ -18606,5 +18606,7 @@ warnings, and `./bin/lint` passes. The full Release suite passes 6,109 tests
 allocation-budget failure; six isolated reruns and the complete rerun pass.
 Current review inventories are 215 callback/event, 426 remote-text, 12,414
 red-team, and 834 mutable-ownership candidates. The `.344` Launchpad Jammy
-AMD64 build is still `Needs building`; commit, push, release-note preview, and
-the full post-push baseline remain.
+AMD64 build is still `Needs building`. Committed and pushed as `08b080cd1`
+after the `.344` to `HEAD` preview passed; the complete post-push remediation
+baseline passes, including package/runtime checks, all diagnostic and policy
+guards, identity checks, and clean branch sync.
