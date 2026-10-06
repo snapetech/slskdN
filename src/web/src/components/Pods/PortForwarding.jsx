@@ -2,6 +2,7 @@ import { urlBase } from '../../config';
 import * as pods from '../../lib/pods';
 import * as portForwarding from '../../lib/portForwarding';
 import React, { Component } from 'react';
+import { TooltipButton } from '../Shared';
 import {
   Button,
   Card,
@@ -424,25 +425,27 @@ class PortForwarding extends Component {
                   Start forwarding local ports to remote services through VPN
                   tunnels.
                 </p>
-                <Button
+                <TooltipButton
                   disabled={vpnCapablePods.length === 0}
                   onClick={() => this.setState({ showCreateModal: true })}
                   primary
+                  tooltip="Open the setup form to route a local app through a VPN-capable pod to a remote service. A pod must be available first."
                 >
                   Start Forwarding
-                </Button>
+                </TooltipButton>
               </Segment>
             ) : (
               <div>
                 <div style={{ marginBottom: '20px', textAlign: 'right' }}>
-                  <Button
+                  <TooltipButton
                     disabled={vpnCapablePods.length === 0}
                     onClick={() => this.setState({ showCreateModal: true })}
                     primary
+                    tooltip="Open the setup form for a loopback-only port forward through a VPN-capable pod. Use it to reach a remote service from an app on this machine."
                   >
                     <Icon name="plus" />
                     Add Forwarding
-                  </Button>
+                  </TooltipButton>
                 </div>
 
                 <Table celled>
@@ -490,9 +493,10 @@ class PortForwarding extends Component {
                         </Table.Cell>
                         <Table.Cell>
                           <Popup
-                            content="Stop port forwarding"
+                            content={`Stop forwarding on localhost:${forwarding.localPort} and close this tunnel when you no longer need the local route.`}
                             trigger={
                               <Button
+                                aria-label={`Stop forwarding on local port ${forwarding.localPort}`}
                                 color="red"
                                 icon="stop"
                                 loading={stoppingForwarding}
@@ -753,12 +757,13 @@ class PortForwarding extends Component {
           <Message error>
             <Message.Header>Error</Message.Header>
             <p>{error}</p>
-            <Button
+            <TooltipButton
               onClick={() => this.setState({ error: null })}
               size="small"
+              tooltip="Dismiss this error message. It does not change forwarding or configuration."
             >
               Dismiss
-            </Button>
+            </TooltipButton>
           </Message>
         )}
 
@@ -766,12 +771,13 @@ class PortForwarding extends Component {
           <Message success>
             <Message.Header>Success</Message.Header>
             <p>{success}</p>
-            <Button
+            <TooltipButton
               onClick={() => this.setState({ success: null })}
               size="small"
+              tooltip="Dismiss this success message. It does not change forwarding or configuration."
             >
               Dismiss
-            </Button>
+            </TooltipButton>
           </Message>
         )}
 
@@ -904,10 +910,13 @@ class PortForwarding extends Component {
             </Form>
           </Modal.Content>
           <Modal.Actions>
-            <Button onClick={() => this.setState({ showCreateModal: false })}>
+            <TooltipButton
+              onClick={() => this.setState({ showCreateModal: false })}
+              tooltip="Close this setup form without starting the port forward."
+            >
               Cancel
-            </Button>
-            <Button
+            </TooltipButton>
+            <TooltipButton
               disabled={
                 !selectedPodId ||
                 !createForm.localPort ||
@@ -917,9 +926,10 @@ class PortForwarding extends Component {
               loading={creatingForwarding}
               onClick={this.handleCreateForwarding}
               primary
+              tooltip={`Open a loopback-only listener on localhost:${createForm.localPort || 'the selected port'} and route local app connections through this VPN pod to the remote service. Use this when you need local access to that service.`}
             >
               Start Forwarding
-            </Button>
+            </TooltipButton>
           </Modal.Actions>
         </Modal>
       </div>

@@ -1,6 +1,6 @@
 import * as podsApi from '../../lib/pods';
 import { Pods } from './Pods';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -98,6 +98,10 @@ describe('Pods', () => {
       { peerId: 'local-peer', role: 'member' },
     ]);
     podsApi.getMessages.mockResolvedValue([]);
+    podsApi.discoverAll.mockResolvedValue([]);
+    podsApi.discoverByName.mockResolvedValue([
+      { name: 'New Pod', podId: 'pod:new', tags: ['ambient'] },
+    ]);
   });
 
   afterEach(() => {
@@ -119,6 +123,96 @@ describe('Pods', () => {
 
     expect(podsApi.get).not.toHaveBeenCalled();
     expect(podsApi.getMembers).toHaveBeenCalledWith(pod.podId);
+  });
+
+  it('names icon controls and explains Pod creation, discovery, membership, and messaging', async () => {
+    renderPods({ channelId: 'general', podId: pod.podId });
+    expect(await screen.findByRole('heading', { name: 'Ambient Pod' })).toBeInTheDocument();
+
+    const createPod = screen.getByRole('button', { name: 'Create a pod' });
+    fireEvent.mouseEnter(createPod);
+    expect(
+      await screen.findByText(
+        'Create a durable pod with a default channel. It is saved by the daemon and restored after restart.',
+      ),
+    ).toBeInTheDocument();
+    expect(podsApi.create).not.toHaveBeenCalled();
+    fireEvent.click(createPod);
+    expect(await screen.findByText('Create Pod')).toBeInTheDocument();
+    const create = screen.getByRole('button', { name: 'Create' });
+    expect(create).toBeDisabled();
+    fireEvent.mouseEnter(create.parentElement);
+    expect(
+      await screen.findByText(
+        'Create a pod with a General channel and save it on the server so it remains available after restarts.',
+      ),
+    ).toBeInTheDocument();
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    fireEvent.mouseEnter(cancel);
+    expect(
+      await screen.findByText(
+        'Close this form without creating a pod; the entered details are discarded.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(cancel);
+    expect(podsApi.create).not.toHaveBeenCalled();
+
+    const discover = screen.getByRole('button', {
+      name: 'Search the pod discovery index',
+    });
+    fireEvent.mouseEnter(discover);
+    expect(
+      await screen.findByText(
+        'Search the pod discovery index for listed pods. This sends your search term to the discovery service so you can find pods to save locally.',
+      ),
+    ).toBeInTheDocument();
+    expect(podsApi.discoverByName).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByPlaceholderText('Find pods...'), {
+      target: { value: 'ambient' },
+    });
+    fireEvent.click(discover);
+    expect(await screen.findByText('New Pod')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(podsApi.discoverByName).toHaveBeenCalledWith('ambient');
+    });
+
+    const saveDiscoveredPod = screen.getByRole('button', {
+      name: 'Save discovered pod New Pod locally',
+    });
+    fireEvent.mouseEnter(saveDiscoveredPod);
+    expect(
+      await screen.findByText(
+        "Save this pod's details in your local pod list so it is available after restarts. This does not join the pod.",
+      ),
+    ).toBeInTheDocument();
+    expect(podsApi.create).not.toHaveBeenCalled();
+
+    const leavePod = screen.getByRole('button', { name: `Leave pod ${pod.name}` });
+    fireEvent.mouseEnter(leavePod);
+    expect(
+      await screen.findByText(
+        'Remove the current peer from this pod and stop participating in its channels. Leave when you no longer want this peer to participate.',
+      ),
+    ).toBeInTheDocument();
+    expect(podsApi.leave).not.toHaveBeenCalled();
+
+    const channel = screen.getByRole('button', { name: 'Open General channel' });
+    fireEvent.mouseEnter(channel);
+    expect(
+      await screen.findByText(
+        'Open General to read its messages and compose updates for the channel participants.',
+      ),
+    ).toBeInTheDocument();
+    const send = screen.getByRole('button', {
+      name: 'Send a message to the active pod channel',
+    });
+    fireEvent.mouseEnter(send);
+    expect(
+      await screen.findByText(
+        "Send this text to the active pod channel's participants. Use this when you want to share an update with them.",
+      ),
+    ).toBeInTheDocument();
+    expect(podsApi.sendMessage).not.toHaveBeenCalled();
   });
 
   it('uses a sixty-second metadata cadence and incremental message cursor', async () => {

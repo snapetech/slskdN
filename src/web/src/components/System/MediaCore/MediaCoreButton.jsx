@@ -31,6 +31,7 @@ const Button = ({
     </SemanticButton>
   );
   const content = tooltip || title || label;
+  const trigger = props.disabled ? <span>{button}</span> : button;
 
   if (!content) {
     return button;
@@ -39,7 +40,7 @@ const Button = ({
   return (
     <Popup
       content={content}
-      trigger={button}
+      trigger={trigger}
     />
   );
 };

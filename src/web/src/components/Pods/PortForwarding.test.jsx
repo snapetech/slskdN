@@ -111,6 +111,68 @@ describe('Pod port forwarding', () => {
       .toHaveTextContent('3');
   });
 
+  it('explains setup, stop, cancel, and dismiss actions before they run', async () => {
+    render(<PortForwarding />);
+
+    await waitFor(() => {
+      expect(portForwarding.getForwardingStatus).toHaveBeenCalledTimes(1);
+    });
+
+    const stop = screen.getByRole('button', {
+      name: 'Stop forwarding on local port 8080',
+    });
+    fireEvent.mouseEnter(stop);
+    expect(
+      await screen.findByText(
+        'Stop forwarding on localhost:8080 and close this tunnel when you no longer need the local route.',
+      ),
+    ).toBeInTheDocument();
+    expect(portForwarding.stopForwarding).not.toHaveBeenCalled();
+
+    const addForwarding = screen.getByRole('button', { name: 'Add Forwarding' });
+    fireEvent.mouseEnter(addForwarding);
+    expect(
+      await screen.findByText(
+        'Open the setup form for a loopback-only port forward through a VPN-capable pod. Use it to reach a remote service from an app on this machine.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('VPN Pod')).not.toBeInTheDocument();
+    expect(portForwarding.startForwarding).not.toHaveBeenCalled();
+
+    fireEvent.click(addForwarding);
+    expect(await screen.findByText('VPN Pod')).toBeInTheDocument();
+    const start = screen.getByRole('button', { name: 'Start Forwarding' });
+    expect(start).toBeDisabled();
+    fireEvent.mouseEnter(start.parentElement);
+    expect(
+      await screen.findByText(
+        'Open a loopback-only listener on localhost:the selected port and route local app connections through this VPN pod to the remote service. Use this when you need local access to that service.',
+      ),
+    ).toBeInTheDocument();
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    fireEvent.mouseEnter(cancel);
+    expect(
+      await screen.findByText(
+        'Close this setup form without starting the port forward.',
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(cancel);
+    expect(portForwarding.startForwarding).not.toHaveBeenCalled();
+
+    fireEvent.click(stop);
+    expect(
+      await screen.findByText('Successfully stopped forwarding on port 8080'),
+    ).toBeInTheDocument();
+    const dismiss = screen.getByRole('button', { name: 'Dismiss' });
+    fireEvent.mouseEnter(dismiss);
+    expect(
+      await screen.findByText(
+        'Dismiss this success message. It does not change forwarding or configuration.',
+      ),
+    ).toBeInTheDocument();
+    expect(portForwarding.stopForwarding).toHaveBeenCalledTimes(1);
+  });
+
   it('renders real forwarding statistics without a synthetic stats timer', async () => {
     render(<PortForwarding />);
     await waitFor(() => {

@@ -5,6 +5,7 @@ import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import PodListenAlongPanel from '../Player/PodListenAlongPanel';
 import PortForwarding from './PortForwarding';
 import VpnGatewayConfig from './VpnGatewayConfig';
+import { TooltipButton } from '../Shared';
 import React, { Component } from 'react';
 import { toast } from 'react-toastify';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -637,6 +638,7 @@ export class Pods extends Component {
               content="Create a durable pod with a default channel. It is saved by the daemon and restored after restart."
               trigger={
                 <Button
+                  aria-label="Create a pod"
                   icon="plus"
                   onClick={this.handleOpenCreatePod}
                   size="small"
@@ -647,10 +649,11 @@ export class Pods extends Component {
           <Input
             action={
               <Popup
-                content="Find listed pods through the pod discovery index."
-                trigger={
-                  <Button
-                    icon="search"
+              content="Search the pod discovery index for listed pods. This sends your search term to the discovery service so you can find pods to save locally."
+              trigger={
+                <Button
+                  aria-label="Search the pod discovery index"
+                  icon="search"
                     loading={discoveryLoading}
                     onClick={this.handleDiscoverPods}
                   />
@@ -709,9 +712,10 @@ export class Pods extends Component {
                       {!local && (
                         <List.Content floated="right">
                           <Popup
-                            content="Save this discovered pod locally so it appears in your pod list after restarts."
+                            content="Save this pod's details in your local pod list so it is available after restarts. This does not join the pod."
                             trigger={
                               <Button
+                                aria-label={`Save discovered pod ${name} locally`}
                                 basic
                                 icon="save"
                                 onClick={(event) => {
@@ -805,10 +809,11 @@ export class Pods extends Component {
                     content={
                       isGoldStarClub
                         ? 'Permanently leave Gold Star Club. This is irrevocable and cannot be undone.'
-                        : 'Leave this pod with the current user.'
+                        : 'Remove the current peer from this pod and stop participating in its channels. Leave when you no longer want this peer to participate.'
                     }
                     trigger={
                       <Button
+                        aria-label={isGoldStarClub ? 'Permanently leave Gold Star Club' : `Leave pod ${podDetail.name || podDetail.podId}`}
                         icon
                         labelPosition="left"
                         negative={isGoldStarClub}
@@ -835,8 +840,9 @@ export class Pods extends Component {
                 <>
                   <div className="pod-channel-selector">
                     {podDetail.channels.map((channel, index) => (
-                      <Button
+                      <TooltipButton
                         active={channel.channelId === activeChannelId}
+                        aria-label={`Open ${channel.name || channel.channelId} channel`}
                         icon={channel.kind === 'Direct' ? 'comments' : 'comment alternate'}
                         key={channel.channelId}
                         labelPosition="left"
@@ -844,9 +850,10 @@ export class Pods extends Component {
                           this.handleDetailTabChange(null, { activeIndex: index })
                         }
                         size="small"
+                        tooltip={`Open ${channel.name || channel.channelId} to read its messages and compose updates for the channel participants.`}
                       >
                         {channel.name || channel.channelId}
-                      </Button>
+                      </TooltipButton>
                     ))}
                   </div>
                   <Segment className="pod-channel-chat">
@@ -903,9 +910,10 @@ export class Pods extends Component {
                       <Input
                         action={
                           <Popup
-                            content="Send this message to the active pod channel."
+                            content="Send this text to the active pod channel's participants. Use this when you want to share an update with them."
                             trigger={
                               <Button
+                                aria-label="Send a message to the active pod channel"
                                 icon="send"
                                 onClick={this.handleSendMessage}
                                 primary
@@ -1029,16 +1037,20 @@ export class Pods extends Component {
             </Form>
           </Modal.Content>
           <Modal.Actions>
-            <Button onClick={() => this.setState({ createModalOpen: false })}>
+            <TooltipButton
+              onClick={() => this.setState({ createModalOpen: false })}
+              tooltip="Close this form without creating a pod; the entered details are discarded."
+            >
               Cancel
-            </Button>
-            <Button
+            </TooltipButton>
+            <TooltipButton
               disabled={!createName.trim()}
               onClick={this.handleCreatePod}
               primary
+              tooltip="Create a pod with a General channel and save it on the server so it remains available after restarts."
             >
               Create
-            </Button>
+            </TooltipButton>
           </Modal.Actions>
         </Modal>
       </div>

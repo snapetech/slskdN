@@ -1,7 +1,6 @@
 import * as pods from '../../lib/pods';
 import React, { useEffect, useState } from 'react';
 import {
-  Button,
   Checkbox,
   Dropdown,
   Form,
@@ -15,6 +14,7 @@ import {
   Tab,
   Table,
 } from 'semantic-ui-react';
+import { TooltipButton } from '../Shared';
 
 const VpnGatewayConfig = ({ podDetail, podId }) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -342,12 +342,14 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
       pane: (
         <Tab.Pane key="allowed-destinations">
           <div style={{ marginBottom: '20px' }}>
-            <Button
+            <TooltipButton
+              aria-label="Add an allowed destination"
               content="Add Destination"
               disabled={!vpnPolicy.enabled}
               icon="plus"
               onClick={() => setShowAddDestination(true)}
               primary
+              tooltip="Add a host and port to this pod's allowed destination draft. Save the VPN configuration to apply the new route."
             />
           </div>
 
@@ -367,12 +369,14 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
                   <Table.Cell>{destination.port}</Table.Cell>
                   <Table.Cell>{destination.protocol?.toUpperCase()}</Table.Cell>
                   <Table.Cell>
-                    <Button
+                    <TooltipButton
+                      aria-label={`Remove allowed destination ${destination.hostPattern}:${destination.port}`}
                       color="red"
                       disabled={!vpnPolicy.enabled}
                       icon="trash"
                       onClick={() => handleRemoveDestination(index)}
                       size="small"
+                      tooltip={`Remove ${destination.hostPattern}:${destination.port} from the draft policy. Save the VPN configuration to stop allowing this route.`}
                     />
                   </Table.Cell>
                 </Table.Row>
@@ -397,12 +401,14 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
       pane: (
         <Tab.Pane key="registered-services">
           <div style={{ marginBottom: '20px' }}>
-            <Button
+            <TooltipButton
+              aria-label="Add a registered service"
               content="Add Service"
               disabled={!vpnPolicy.enabled}
               icon="plus"
               onClick={() => setShowAddService(true)}
               primary
+              tooltip="Register a named service and destination in this pod's policy draft so members can find the route. Save the VPN configuration to apply it."
             />
           </div>
 
@@ -429,12 +435,14 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
                     {service.protocol})
                   </Table.Cell>
                   <Table.Cell>
-                    <Button
+                    <TooltipButton
+                      aria-label={`Remove registered service ${service.name}`}
                       color="red"
                       disabled={!vpnPolicy.enabled}
                       icon="trash"
                       onClick={() => handleRemoveService(index)}
                       size="small"
+                      tooltip={`Remove ${service.name} from the draft service list. Save the VPN configuration to stop advertising this route to pod members.`}
                     />
                   </Table.Cell>
                 </Table.Row>
@@ -620,14 +628,15 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
       />
 
       <div style={{ marginTop: '20px', textAlign: 'right' }}>
-        <Button
+        <TooltipButton
           disabled={!vpnPolicy.enabled}
           loading={saving}
           onClick={handleSavePolicy}
           primary
+          tooltip="Save this pod's enabled VPN gateway policy so its destination rules, registered services, and limits take effect."
         >
           Save VPN Configuration
-        </Button>
+        </TooltipButton>
       </div>
 
       {/* Add Destination Modal */}
@@ -688,14 +697,21 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
           </Form>
         </Modal.Content>
         <Modal.Actions>
-          <Button onClick={() => setShowAddDestination(false)}>Cancel</Button>
-          <Button
+          <TooltipButton
+            onClick={() => setShowAddDestination(false)}
+            tooltip="Close the dialog and return to the allowed destination list without adding this entry."
+          >
+            Cancel
+          </TooltipButton>
+          <TooltipButton
+            aria-label="Add destination to draft policy"
             disabled={!newDestination.hostPattern || !newDestination.port}
             onClick={handleAddDestination}
             primary
+            tooltip="Add this host, port, and protocol to the draft allowlist. Save the VPN configuration to apply it to the pod."
           >
             Add Destination
-          </Button>
+          </TooltipButton>
         </Modal.Actions>
       </Modal>
 
@@ -788,8 +804,14 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
           </Form>
         </Modal.Content>
         <Modal.Actions>
-          <Button onClick={() => setShowAddService(false)}>Cancel</Button>
-          <Button
+          <TooltipButton
+            onClick={() => setShowAddService(false)}
+            tooltip="Close the dialog and return to registered services without adding this entry."
+          >
+            Cancel
+          </TooltipButton>
+          <TooltipButton
+            aria-label="Add service to draft policy"
             disabled={
               !newService.name ||
               !newService.destinationHost ||
@@ -797,9 +819,10 @@ const VpnGatewayConfig = ({ podDetail, podId }) => {
             }
             onClick={handleAddService}
             primary
+            tooltip="Add this named service and destination to the draft policy. Save the VPN configuration to publish the route to pod members."
           >
             Add Service
-          </Button>
+          </TooltipButton>
         </Modal.Actions>
       </Modal>
     </div>
