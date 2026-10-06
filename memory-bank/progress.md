@@ -18787,3 +18787,12 @@ rejected-SignalR-send regression and extended the async-side-effect source
 guard. The focused Application lifecycle suite passes 18/18, and the full
 .NET Release suite passes 6,110 tests (74 application, 5,747 unit, 289
 integration). `./bin/lint` passes.
+
+## 2026-10-06 03:33 UTC — Recount callback review candidates
+
+The refreshed callback/event scan has 216 candidates, one more than the prior
+inventory. The added match is the new regression's reflection call to the
+private `Program.RaiseLogEmitted` event helper; it is test infrastructure, not
+a production callback. The backlog now records the confirmed SignalR task
+fix and this false positive. Re-run the full remediation baseline after
+pushing the batch.

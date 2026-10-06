@@ -22,7 +22,7 @@ The media-server fixes are pushed in `ec8c0b7f2`; the refreshed active backlog
 and memory handoff are pushed in `46ed981b9`. The `.344`-to-`HEAD` release-note
 preview, local identity scan, target verification, and complete remediation
 baseline pass. Current candidate counts are 25 async-void, 0 silent-catch,
-215 callback/event, 429 remote-text, 12,448 red-team, and 834 mutable-ownership.
+216 callback/event, 429 remote-text, 12,448 red-team, and 834 mutable-ownership.
 
 Collections now explains standalone create, delete, add, and share actions.
 Wishlist table and card controls explain manual peer searches, search history,
@@ -19144,5 +19144,7 @@ and an operator-facing release-note fragment. Gotchas `0z1737` and `0z1738`
 have their required separate local documentation commits. Application
 lifecycle tests pass 18/18, and the .NET Release solution passes 6,110 tests
 (74 application, 5,747 unit, 289 integration). `./bin/lint` passes. Commit the
-fix, push, and rerun release-note and full remediation gates before continuing
-the remaining evidence-gated audit.
+fix and inventory update are ready. The callback/event candidate count is now
+216; its one new match is the regression's reflection call to the private log
+event raiser. Push this batch and rerun release-note and full remediation
+gates before continuing the remaining evidence-gated audit.
