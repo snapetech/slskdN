@@ -40525,3 +40525,16 @@ queries.
 
 **Prevention:** Scope modal action queries to the rendered modal container
 with `within`, especially when the trigger and submit action share a label.
+
+### 0z1728. Preserve Visible Labels In Expanded Responsive Buttons (2026-10-06)
+
+**What went wrong:** A `ShrinkableButton` refactor retained its icon but
+omitted its child label, leaving expanded desktop controls icon-only even
+though the responsive design intended to show text at wider widths.
+
+**Why:** The refactor consolidated two button branches but dropped the
+conditional child rendering from the shared button tree.
+
+**Prevention:** When consolidating responsive markup, preserve the visible
+label branch and test the rendered text at wide widths as well as the icon-only
+layout at narrow widths.
