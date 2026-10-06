@@ -44,6 +44,18 @@ Popup instance stayed mounted and retained part of its previous trigger.
 mode, or otherwise keep one stable trigger tree. Test transitions from disabled
 to enabled and assert the old control is removed, not just each state alone.
 
+### 0z1708. Re-query Elements After Disabled-State Renders (2026-10-06)
+
+**Correction to 0z1707:** The suspected duplicate button was not present. The
+failing test retained the disabled button node across a render where
+`TooltipButton` replaced its trigger; a fresh query and a direct rerender test
+both confirm exactly one enabled button remains. No shared Popup code change
+was needed.
+
+**Prevention:** When a control changes from disabled to enabled, wait for the
+updated state and query the DOM again. Do not assert against a node reference
+captured before a render that can replace the trigger.
+
 ### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
 
 **What went wrong:** A new policy-collection regression used an unqualified
