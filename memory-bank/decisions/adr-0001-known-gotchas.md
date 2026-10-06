@@ -4,6 +4,21 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1704. Alias Types When Test Namespaces Shadow Imports (2026-10-06)
+
+**What went wrong:** A new policy-collection regression used an unqualified
+`BucketPadder` name from a nested security-test namespace, where both the
+security and mesh namespaces define that type. The unit-test project failed
+to compile with an ambiguous-reference error.
+
+**Why:** C# resolves names across the current and imported namespaces, and
+common subsystem type names can collide even when the test intends only one
+implementation.
+
+**Prevention:** Fully qualify or alias colliding domain types in tests that
+live under nested namespaces, then compile the focused test project before
+starting broader validation.
+
 ### 0z1703. Keep Security Policy Collections Immutable (2026-10-06)
 
 **What went wrong:** Public `static readonly` arrays and get-only array
