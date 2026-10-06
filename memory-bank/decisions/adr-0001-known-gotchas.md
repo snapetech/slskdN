@@ -40471,3 +40471,18 @@ does not automatically label its trigger.
 `aria-label` or use the concise tooltip text as a fallback name. For buttons
 wrapped in a standalone Popup, set `aria-label` on the trigger itself. Test
 both the hover guidance and the rendered button name.
+
+### 0z1724. Keep Responsive Buttons Descriptive At Every Width (2026-10-06)
+
+**What went wrong:** `ShrinkableButton` rendered a tooltip on narrow screens
+only when it had to collapse to an icon. At wider sizes, the same action had
+no hover guidance unless the call site supplied a tooltip. The collapsed
+icon-only fallback also did not provide its child text as an accessible name.
+
+**Why:** Its responsive branches created different Popup and button trees;
+the expanded branch returned a plain button while the collapsed branch used
+the visible child text only as Popup content.
+
+**Prevention:** Give each call site action-specific tooltip text and keep the
+Popup and accessible button name consistent across responsive states. Test
+expanded, collapsed, and disabled renderings.
