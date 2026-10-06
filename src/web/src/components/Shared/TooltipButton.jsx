@@ -16,30 +16,33 @@ const getText = (children) => {
 const TooltipButton = ({
   'aria-label': ariaLabel,
   children,
+  content: buttonContent,
   popupPosition = 'top center',
   title,
   tooltip,
   ...props
 }) => {
-  const inferredLabel = ariaLabel || title || getText(children) || undefined;
+  const inferredLabel = ariaLabel || title || getText(children) || getText(buttonContent) ||
+    (typeof tooltip === 'string' ? tooltip : undefined);
   const button = (
     <Button
       aria-label={ariaLabel || inferredLabel}
+      content={buttonContent}
       title={title}
       {...props}
     >
       {children}
     </Button>
   );
-  const content = tooltip || title || inferredLabel;
+  const popupContent = tooltip || title || inferredLabel;
 
-  if (!content) {
+  if (!popupContent) {
     return button;
   }
 
   return (
     <Popup
-      content={content}
+      content={popupContent}
       position={popupPosition}
       trigger={props.disabled ? <span>{button}</span> : button}
     />

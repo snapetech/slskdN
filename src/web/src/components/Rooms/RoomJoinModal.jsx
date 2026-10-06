@@ -1,5 +1,6 @@
 import './Rooms.css';
 import * as rooms from '../../lib/rooms';
+import TooltipButton from '../Shared/TooltipButton';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -70,19 +71,11 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
     );
 
     sorted.sort((a, b) => {
-      if (sortOrder === 'asc') {
-        if (typeof a[sortBy] === 'string') {
-          return b[sortBy].localeCompare(a[sortBy]);
-        }
+      const comparison = typeof a[sortBy] === 'string'
+        ? a[sortBy].localeCompare(b[sortBy])
+        : a[sortBy] - b[sortBy];
 
-        return a[sortBy] - b[sortBy];
-      }
-
-      if (typeof a[sortBy] === 'string') {
-        return a[sortBy].localeCompare(b[sortBy]);
-      }
-
-      return b[sortBy] - a[sortBy];
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     return sorted;
@@ -185,27 +178,53 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
                   celled
                   selectable
                 >
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.HeaderCell onClick={() => changeSort('name')}>
-                        Name
-                        <Icon
-                          link={sortBy === 'name'}
-                          name={
-                            sortBy === 'name' &&
-                            (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
-                          }
-                        />
+                    <Table.Header>
+                      <Table.Row>
+                      <Table.HeaderCell
+                        aria-sort={sortBy === 'name'
+                          ? sortOrder === 'asc' ? 'ascending' : 'descending'
+                          : 'none'}
+                      >
+                        <TooltipButton
+                          aria-label="Sort available rooms by name"
+                          basic
+                          className="room-sort-button"
+                          compact
+                          fluid
+                          onClick={() => changeSort('name')}
+                          style={{ textAlign: 'left' }}
+                          tooltip={sortBy === 'name'
+                            ? `Sort room names ${sortOrder === 'asc' ? 'descending' : 'ascending'} to change the order of the list.`
+                            : 'Sort available Soulseek rooms alphabetically so you can find a room by name.'}
+                        >
+                          Name
+                          {sortBy === 'name' && (
+                            <Icon name={sortOrder === 'asc' ? 'chevron up' : 'chevron down'} />
+                          )}
+                        </TooltipButton>
                       </Table.HeaderCell>
-                      <Table.HeaderCell onClick={() => changeSort('userCount')}>
-                        Users
-                        <Icon
-                          link={sortBy === 'userCount'}
-                          name={
-                            sortBy === 'userCount' &&
-                            (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
-                          }
-                        />
+                      <Table.HeaderCell
+                        aria-sort={sortBy === 'userCount'
+                          ? sortOrder === 'asc' ? 'ascending' : 'descending'
+                          : 'none'}
+                      >
+                        <TooltipButton
+                          aria-label="Sort available rooms by user count"
+                          basic
+                          className="room-sort-button"
+                          compact
+                          fluid
+                          onClick={() => changeSort('userCount')}
+                          style={{ textAlign: 'left' }}
+                          tooltip={sortBy === 'userCount'
+                            ? `Sort room member counts ${sortOrder === 'asc' ? 'descending' : 'ascending'} to change the order of the list.`
+                            : 'Sort available Soulseek rooms by participant count so you can find active rooms.'}
+                        >
+                          Users
+                          {sortBy === 'userCount' && (
+                            <Icon name={sortOrder === 'asc' ? 'chevron up' : 'chevron down'} />
+                          )}
+                        </TooltipButton>
                       </Table.HeaderCell>
                     </Table.Row>
                   </Table.Header>
@@ -238,14 +257,22 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
           )}
         </Modal.Content>
         <Modal.Actions>
-          <Button onClick={() => close()}>Cancel</Button>
-          <Button
+          <TooltipButton
+            onClick={() => close()}
+            tooltip="Close the dialog without joining a Soulseek room."
+            type="button"
+          >
+            Cancel
+          </TooltipButton>
+          <TooltipButton
             disabled={!selected}
             onClick={() => joinRoom()}
             positive
+            tooltip="Join the selected Soulseek room; its members will see this account in the participant list."
+            type="button"
           >
             Join
-          </Button>
+          </TooltipButton>
         </Modal.Actions>
       </Modal>
     </>
