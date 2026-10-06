@@ -38,6 +38,14 @@
   discovery profile/recommendation actions, and album completion refresh.
   Focused regressions pass 10/10; the complete web suite passes 1,238 tests,
   and web lint/build plus `./bin/lint` pass.
+- [x] Repair the media-server readiness review: collect page-only connection,
+  path, mapping, and safety values; display path status and translated paths;
+  provide the sync preview to contract review; label the report action
+  accurately; and apply path mappings only at separator boundaries.
+- [x] Add explanatory tooltips to private-message, user-note, and Lidarr
+  wanted-sync actions. Focused changed-component tests pass 41/41; the full
+  web suite passes 1,245 tests across 190 files, web lint/build pass, the full
+  .NET Release suite passes 6,109 tests, and `./bin/lint` passes.
 - [x] Verify every first-party application, test, and build-tool project under
   `src`, `tests`, and `tools` targets `net10.0`. MonoTorrent 3.9.0's upstream
   project and selected NuGet asset target `net8.0`, which the .NET 10 app can

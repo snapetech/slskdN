@@ -390,6 +390,25 @@
   margin: 0 0 12px !important;
 }
 
+.media-server-review-section {
+  border-top: 1px solid var(--slskdn-border, rgba(127, 127, 127, 0.28));
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+}
+
+.media-server-review-section > .ui.header {
+  margin: 0 0 0.75rem !important;
+}
+
+.media-server-review-section .grouped.fields > .ui.header {
+  margin-bottom: 0.65rem;
+}
+
+.media-server-review-section .ui.checkbox label {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .integration-manual-import {
   margin-top: 14px !important;
 }

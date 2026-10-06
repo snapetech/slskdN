@@ -1,4 +1,39 @@
-## Current state — Continue search control and UI affordance remediation — 2026-10-06 00:53 UTC
+## Current state — Repair media-server readiness review and continue UI audit — 2026-10-06 01:24 UTC
+
+The .NET 10 audit is complete. Every first-party application, test, and
+build-tool project under `src`, `tests`, and `tools` targets `net10.0`.
+MonoTorrent 3.9.0 targets `net8.0`, which NuGet marks compatible with `net10.0`;
+its Mono.Nat 3.0.4 dependency provides `net6.0` and .NET Standard assets, with
+NuGet selecting the compatible `net6.0` assembly for the app. No first-party
+TFM needs retargeting, and the pinned slskNet.Runtime mirror remains under its
+source-sync contract.
+
+The media-server review panel now accepts page-only connection, path, mapping,
+and safety values; displays path status and translated paths; passes a populated
+readiness preview into contract review; and names the report action honestly.
+Path maps now require a separator boundary. Send Private Message, User Note,
+and Lidarr Wanted Sync actions have explanatory tooltips. Gotchas `0z1694`,
+`0z1695`, and `0z1696` are committed locally. The focused changed-component
+suite passes 41/41, the complete web suite passes 1,245 tests across 190 files,
+web lint/build pass, `dotnet test slskd.sln -c Release --no-restore` passes
+6,109 tests, and `./bin/lint` passes.
+
+This batch's release fragment and Unreleased changelog entry are ready. The
+product commit, release-note range preview, target verification, push, and
+post-push remediation baseline remain. Continue the code-backed UI audit;
+tooltip-scan counts are candidate queues because composed buttons can already
+receive tooltips from their callers.
+
+Stable `.344` remains immutable and its six platform artifacts are verified.
+Its Jammy AMD64 PPA build is still the release gate for `.345`; do not create
+the next stable tag until that exact `.344` binary is built and published.
+Then run the guarded stable release gate and verify hosted artifacts. Continue
+triaging confirmed findings; T-908 lifecycle, global Party ID authority,
+accessibility/device evidence, WAN/resource measurements, hidden-tab
+throttling, and the original frontend network-change cause remain open or
+evidence-gated.
+
+## Prior state — Continue search control and UI affordance remediation — 2026-10-06 00:53 UTC
 
 The .NET 10 audit remains complete: all first-party app, test, and build-tool
 projects under `src`, `tests`, and `tools` target `net10.0`. MonoTorrent's

@@ -26,6 +26,9 @@ const normalizePath = (value = '') =>
     .replace(/\/+/gu, '/')
     .replace(/\/$/u, '');
 
+const matchesPathPrefix = (path, prefix) =>
+  path === prefix || path.startsWith(`${prefix}/`);
+
 export const buildMediaServerPathDiagnostic = ({
   localPath = '',
   serverPath = '',
@@ -56,7 +59,7 @@ export const buildMediaServerPathDiagnostic = ({
   if (
     normalizedFrom &&
     normalizedTo &&
-    normalizedLocal.startsWith(normalizedFrom)
+    matchesPathPrefix(normalizedLocal, normalizedFrom)
   ) {
     const mapped = `${normalizedTo}${normalizedLocal.slice(normalizedFrom.length)}`;
     return {
@@ -171,6 +174,15 @@ export const mediaServerAutomationContracts = [
 
 const defaultAutomationEnabled = (automation) =>
   automation.id === 'playHistoryImport' || automation.id === 'completedScan';
+
+export const defaultMediaServerAutomations = Object.freeze(
+  Object.fromEntries(
+    mediaServerAutomationContracts.map((automation) => [
+      automation.id,
+      defaultAutomationEnabled(automation),
+    ]),
+  ),
+);
 
 export const buildMediaServerExecutionContract = ({
   confirmationRequired = true,

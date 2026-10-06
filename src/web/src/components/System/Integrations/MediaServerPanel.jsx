@@ -6,102 +6,91 @@ import {
   buildMediaServerExecutionContract,
   buildMediaServerPathDiagnostic,
   buildMediaServerSyncPreview,
+  defaultMediaServerAutomations,
   formatMediaServerExecutionContractReport,
   formatMediaServerSyncReport,
   mediaServerAutomationContracts,
   mediaServerAdapters,
 } from '../../../lib/mediaServerIntegrations';
+import TooltipButton from '../../Shared/TooltipButton';
 import {
   Button,
   Card,
+  Form,
   Header,
   Icon,
   Message,
   Popup,
   Segment,
-  Table,
 } from 'semantic-ui-react';
 
 const MediaServerPanel = () => {
   const [activeAdapterId, setActiveAdapterId] = useState(
-    mediaServerAdapters && mediaServerAdapters.length > 0
-      ? mediaServerAdapters[0].id
-      : null,
+    mediaServerAdapters[0]?.id ?? null,
   );
-  const [executing, setExecuting] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
+  const [tokenConfigured, setTokenConfigured] = useState(false);
+  const [localPath, setLocalPath] = useState('');
+  const [serverPath, setServerPath] = useState('');
+  const [remotePathFrom, setRemotePathFrom] = useState('');
+  const [remotePathTo, setRemotePathTo] = useState('');
+  const [userMappingConfigured, setUserMappingConfigured] = useState(false);
+  const [confirmationRequired, setConfirmationRequired] = useState(true);
+  const [rateLimitPerMinute, setRateLimitPerMinute] = useState(6);
+  const [dedupeWindowHours, setDedupeWindowHours] = useState(24);
+  const [enabledAutomations, setEnabledAutomations] = useState(
+    () => ({ ...defaultMediaServerAutomations }),
+  );
   const [syncReport, setSyncReport] = useState(null);
   const [pathDiagnostic, setPathDiagnostic] = useState(null);
   const [contractReport, setContractReport] = useState(null);
-  const [error, setError] = useState(null);
 
-  const hasAdapters = Object.keys(mediaServerAdapters || {}).length > 0;
-  const hasContracts =
-    Object.keys(mediaServerAutomationContracts || {}).length > 0;
+  const hasAdapters = mediaServerAdapters.length > 0;
+  const hasContracts = mediaServerAutomationContracts.length > 0;
 
-  const handlePreviewSync = async () => {
-    setExecuting(true);
-    setError(null);
-    setSyncReport(null);
+  const getSyncPreview = () =>
+    buildMediaServerSyncPreview({
+      adapterId: activeAdapterId,
+      baseUrl,
+      localPath,
+      remotePathFrom,
+      remotePathTo,
+      serverPath,
+      tokenConfigured,
+    });
 
-    try {
-      const report = await buildMediaServerSyncPreview({
-        adapterId: activeAdapterId,
-      });
-      setSyncReport(report);
-    } catch (err) {
-      setError(
-        err?.response?.data ||
-          err?.response?.statusText ||
-          err?.message ||
-          'Failed to preview media server sync.',
-      );
-    } finally {
-      setExecuting(false);
-    }
+  const handlePreviewSync = () => {
+    setSyncReport(formatMediaServerSyncReport(getSyncPreview()));
   };
 
-  const handlePathDiagnostic = async () => {
-    setExecuting(true);
-    setError(null);
-    setPathDiagnostic(null);
-
-    try {
-      const diagnostic = await buildMediaServerPathDiagnostic({
-        adapterId: activeAdapterId,
-      });
-      setPathDiagnostic(diagnostic);
-    } catch (err) {
-      setError(
-        err?.response?.data ||
-          err?.response?.statusText ||
-          err?.message ||
-          'Failed to run path diagnostic.',
-      );
-    } finally {
-      setExecuting(false);
-    }
+  const handlePathDiagnostic = () => {
+    setPathDiagnostic(
+      buildMediaServerPathDiagnostic({
+        localPath,
+        remotePathFrom,
+        remotePathTo,
+        serverPath,
+      }),
+    );
   };
 
-  const handleExecuteContract = async () => {
-    setExecuting(true);
-    setError(null);
-    setContractReport(null);
+  const handleReviewContract = () => {
+    const contract = buildMediaServerExecutionContract({
+      confirmationRequired,
+      dedupeWindowHours,
+      enabledAutomations,
+      rateLimitPerMinute,
+      syncPreview: getSyncPreview(),
+      userMappingConfigured,
+    });
+    setContractReport(formatMediaServerExecutionContractReport(contract));
+  };
 
-    try {
-      const report = await buildMediaServerExecutionContract({
-        adapterId: activeAdapterId,
-      });
-      setContractReport(report);
-    } catch (err) {
-      setError(
-        err?.response?.data ||
-          err?.response?.statusText ||
-          err?.message ||
-          'Failed to execute media server contract.',
-      );
-    } finally {
-      setExecuting(false);
-    }
+  const updateAutomation = (automationId, enabled) => {
+    setEnabledAutomations((current) => ({
+      ...current,
+      [automationId]: enabled,
+    }));
   };
 
   return (
@@ -112,37 +101,25 @@ const MediaServerPanel = () => {
           Media Servers
         </Card.Header>
         <Card.Meta>
-          Optional Plex, Jellyfin/Emby, and Navidrome integration planning and
-          path diagnostics.
+          Local readiness reviews for Plex, Jellyfin/Emby, and Navidrome.
+          Nothing here saves credentials or contacts a media server.
         </Card.Meta>
       </Card.Content>
       <Card.Content>
+        <Message info size="small">
+          Enter the values you want to review. They remain in this page only;
+          preview and contract actions do not run scans or other server work.
+        </Message>
+
         {!hasAdapters && (
-          <Message
-            info
-            size="small"
-          >
-            No registered media server adapters are available. Configure
-            supported adapters in the runtime before enabling automation.
+          <Message info size="small">
+            No registered media server adapters are available.
           </Message>
         )}
 
         {!hasContracts && hasAdapters && (
-          <Message
-            warning
-            size="small"
-          >
-            Automation contracts are not configured. Media server operations
-            will be skipped until at least one contract is defined.
-          </Message>
-        )}
-
-        {error && (
-          <Message
-            negative
-            size="small"
-          >
-            <p>{error}</p>
+          <Message warning size="small">
+            No media server automation contracts are available.
           </Message>
         )}
 
@@ -160,7 +137,6 @@ const MediaServerPanel = () => {
                     color={
                       activeAdapterId === adapter.id ? 'purple' : undefined
                     }
-                    disabled={executing}
                     icon
                     labelPosition="left"
                     onClick={() => setActiveAdapterId(adapter.id)}
@@ -174,48 +150,179 @@ const MediaServerPanel = () => {
           </div>
         )}
 
-        <div
-          className="integration-actions"
-          style={{ marginTop: hasAdapters ? '1em' : undefined }}
+        <Form
+          className="media-server-review-form"
+          onSubmit={(event) => event.preventDefault()}
         >
-          <Button
-            disabled={!hasAdapters || executing}
+          <section className="media-server-review-section">
+            <Header as="h4">Connection</Header>
+            <Form.Group widths="equal">
+              <Form.Input
+                aria-label="Media server base URL"
+                id="media-server-base-url"
+                label="Media server base URL"
+                onChange={(_event, { value }) => setBaseUrl(value)}
+                placeholder="https://media.example"
+                value={baseUrl}
+              />
+              <Form.Checkbox
+                aria-label="API token is configured"
+                checked={tokenConfigured}
+                id="media-server-token-configured"
+                label="API token is configured"
+                onChange={(_event, { checked }) => setTokenConfigured(checked)}
+              />
+            </Form.Group>
+          </section>
+
+          <section className="media-server-review-section">
+            <Header as="h4">Path mapping</Header>
+            <Form.Group widths="equal">
+              <Form.Input
+                aria-label="Completed-download path on slskdN"
+                id="media-server-local-path"
+                label="Completed-download path on slskdN"
+                onChange={(_event, { value }) => setLocalPath(value)}
+                placeholder="/downloads/music"
+                value={localPath}
+              />
+              <Form.Input
+                aria-label="Library path on the media server"
+                id="media-server-server-path"
+                label="Library path on the media server"
+                onChange={(_event, { value }) => setServerPath(value)}
+                placeholder="/library/music"
+                value={serverPath}
+              />
+            </Form.Group>
+
+            <Form.Group widths="equal">
+              <Form.Input
+                aria-label="Remote path mapping: from"
+                id="media-server-remote-path-from"
+                label="Remote path mapping: from"
+                onChange={(_event, { value }) => setRemotePathFrom(value)}
+                placeholder="/downloads"
+                value={remotePathFrom}
+              />
+              <Form.Input
+                aria-label="Remote path mapping: to"
+                id="media-server-remote-path-to"
+                label="Remote path mapping: to"
+                onChange={(_event, { value }) => setRemotePathTo(value)}
+                placeholder="/library"
+                value={remotePathTo}
+              />
+            </Form.Group>
+          </section>
+
+          <section className="media-server-review-section">
+            <Header as="h4">Safety contract</Header>
+            <Form.Group widths="equal">
+              <Form.Checkbox
+                aria-label="Media server user mapping is configured"
+                checked={userMappingConfigured}
+                id="media-server-user-mapping-configured"
+                label="Media server user mapping is configured"
+                onChange={(_event, { checked }) =>
+                  setUserMappingConfigured(checked)
+                }
+              />
+              <Form.Checkbox
+                aria-label="Require confirmation for actions"
+                checked={confirmationRequired}
+                id="media-server-confirmation-required"
+                label="Require confirmation for actions"
+                onChange={(_event, { checked }) =>
+                  setConfirmationRequired(checked)
+                }
+              />
+            </Form.Group>
+
+            <Form.Group widths="equal">
+              <Form.Input
+                aria-label="Maximum calls per minute"
+                id="media-server-rate-limit"
+                label="Maximum calls per minute"
+                min={0}
+                onChange={(_event, { value }) =>
+                  setRateLimitPerMinute(Number(value))
+                }
+                type="number"
+                value={rateLimitPerMinute}
+              />
+              <Form.Input
+                aria-label="Dedupe window in hours"
+                id="media-server-dedupe-window"
+                label="Dedupe window in hours"
+                min={0}
+                onChange={(_event, { value }) =>
+                  setDedupeWindowHours(Number(value))
+                }
+                type="number"
+                value={dedupeWindowHours}
+              />
+            </Form.Group>
+
+            <Form.Group grouped>
+              <Header as="h5">
+                Include automations in the local readiness review
+              </Header>
+              {mediaServerAutomationContracts.map((automation) => (
+                <Form.Checkbox
+                  aria-label={`Include ${automation.label} in review`}
+                  checked={Boolean(enabledAutomations[automation.id])}
+                  id={`media-server-automation-${automation.id}`}
+                  key={automation.id}
+                  label={`${automation.label}: ${automation.description}`}
+                  onChange={(_event, { checked }) =>
+                    updateAutomation(automation.id, checked)
+                  }
+                />
+              ))}
+            </Form.Group>
+          </section>
+        </Form>
+
+        <div className="integration-actions">
+          <TooltipButton
+            disabled={!hasAdapters}
             icon
             labelPosition="left"
-            loading={executing}
             onClick={handlePreviewSync}
+            tooltip="Check URL, token, and path readiness. This creates a local report and does not contact the media server."
           >
             <Icon name="sync" />
             Preview Sync
-          </Button>
-          <Button
-            disabled={!hasAdapters || executing}
+          </TooltipButton>
+          <TooltipButton
+            disabled={!hasAdapters}
             icon
             labelPosition="left"
-            loading={executing}
             onClick={handlePathDiagnostic}
+            tooltip="Compare the local and server paths, applying the optional remote mapping; this check stays in your browser."
           >
             <Icon name="folder open" />
             Path Diagnostic
-          </Button>
-          <Button
-            disabled={!hasAdapters || executing}
+          </TooltipButton>
+          <TooltipButton
+            disabled={!hasContracts}
             icon
             labelPosition="left"
-            loading={executing}
-            onClick={handleExecuteContract}
+            onClick={handleReviewContract}
             primary
+            tooltip="Review readiness gates and selected automations. This report runs no media server actions."
           >
-            <Icon name="play" />
-            Execute Contract
-          </Button>
+            <Icon name="clipboard check" />
+            Review Contract
+          </TooltipButton>
         </div>
 
         {contractReport && (
           <Segment style={{ marginTop: '1em' }}>
-            <Header as="h4">Execution Contract</Header>
+            <Header as="h4">Contract Review</Header>
             <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-              {formatMediaServerExecutionContractReport(contractReport)}
+              {contractReport}
             </pre>
           </Segment>
         )}
@@ -224,7 +331,7 @@ const MediaServerPanel = () => {
           <Segment style={{ marginTop: '1em' }}>
             <Header as="h4">Sync Preview</Header>
             <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-              {formatMediaServerSyncReport(syncReport)}
+              {syncReport}
             </pre>
           </Segment>
         )}
@@ -232,33 +339,15 @@ const MediaServerPanel = () => {
         {pathDiagnostic && (
           <Segment style={{ marginTop: '1em' }}>
             <Header as="h4">Path Diagnostic</Header>
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>Library</Table.HeaderCell>
-                  <Table.HeaderCell>Detected Path</Table.HeaderCell>
-                  <Table.HeaderCell>Normalized Path</Table.HeaderCell>
-                  <Table.HeaderCell>Status</Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {(pathDiagnostic.paths || []).map((entry) => (
-                  <Table.Row key={entry.library}>
-                    <Table.Cell>{entry.library}</Table.Cell>
-                    <Table.Cell>{entry.detectedPath}</Table.Cell>
-                    <Table.Cell>{entry.normalizedPath}</Table.Cell>
-                    <Table.Cell>
-                      {entry.exists ? 'Accessible' : 'No access'}
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-            {pathDiagnostic.errorSummary && (
-              <p style={{ marginTop: '0.5em', color: '#9f3a38' }}>
-                {pathDiagnostic.errorSummary}
-              </p>
-            )}
+            <Message color={pathDiagnostic.color} size="small">
+              <Message.Header>{pathDiagnostic.status}</Message.Header>
+              <p>{pathDiagnostic.message}</p>
+              {pathDiagnostic.mappedPath && (
+                <p>
+                  Mapped path: <code>{pathDiagnostic.mappedPath}</code>
+                </p>
+              )}
+            </Message>
           </Segment>
         )}
       </Card.Content>

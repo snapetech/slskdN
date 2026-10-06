@@ -101,6 +101,20 @@ describe('Lidarr', () => {
     expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(1);
   });
 
+  it('explains that manual sync pulls missing albums into the wishlist', async () => {
+    render(<Lidarr />);
+
+    await screen.findByText('Lidarr 2.0.0');
+    const syncButton = screen.getByRole('button', { name: 'Sync Wanted Now' });
+    fireEvent.mouseEnter(syncButton);
+
+    expect(
+      await screen.findByText(
+        "Fetch Lidarr's missing albums and add new ones to the slskdN wishlist.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('labels refresh and pagination actions', async () => {
     lidarrAPI.getWantedMissing.mockResolvedValue({
       records: [{ albumType: 'Album', id: 1, title: 'Album One' }],

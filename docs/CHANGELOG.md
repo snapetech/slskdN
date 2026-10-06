@@ -28,6 +28,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   controls, and album completion refresh now explain their effects before use.
 - Selected transfer actions and request details modal controls now explain
   what they do before you use them.
+- Media-server readiness reviews now show path mapping results and clearly
+  state that they run locally. Private-message, user-note, and Lidarr sync
+  buttons explain their effects before use.
 - Pod management, content-linking, and shadow-index endpoints now propagate
   caller cancellation instead of reporting canceled requests as HTTP 500 errors.
 - Pod content lookup propagates caller cancellation and escapes MusicBrainz

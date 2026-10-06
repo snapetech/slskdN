@@ -3,8 +3,10 @@ import * as lidarrAPI from '../../lib/lidarr';
 import * as wishlistAPI from '../../lib/wishlist';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { TooltipButton } from '../Shared';
 import {
   Button,
+  Button as SemanticButton,
   Header,
   Icon,
   Input,
@@ -49,7 +51,7 @@ const StatusBar = ({ status, syncState, onSync, syncing }) => {
             </Header.Subheader>
           </Header.Content>
         </Header>
-        <Button
+        <TooltipButton
           disabled={syncing || !connected}
           icon="sync"
           loading={syncing}
@@ -57,6 +59,7 @@ const StatusBar = ({ status, syncState, onSync, syncing }) => {
           onClick={onSync}
           primary
           size="small"
+          tooltip="Fetch Lidarr's missing albums and add new ones to the slskdN wishlist."
         />
       </div>
 
@@ -220,7 +223,7 @@ const WantedSection = ({ connected }) => {
               position="top center"
               trigger={
                 <span>
-                  <Button
+                  <SemanticButton
                     aria-label="Previous Lidarr album page"
                     disabled={page <= 1}
                     icon="chevron left"
@@ -235,7 +238,7 @@ const WantedSection = ({ connected }) => {
               position="top center"
               trigger={
                 <span>
-                  <Button
+                  <SemanticButton
                     aria-label="Next Lidarr album page"
                     disabled={page >= totalPages}
                     icon="chevron right"

@@ -177,7 +177,7 @@ describe('Integrations', () => {
       screen.getByRole('button', { name: 'Path Diagnostic' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Execute Contract' }),
+      screen.getByRole('button', { name: 'Review Contract' }),
     ).toBeInTheDocument();
   });
 

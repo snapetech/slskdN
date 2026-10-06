@@ -72,4 +72,39 @@ describe('UserNoteModal', () => {
       }),
     );
   });
+
+  it('explains how to save or discard a user note', async () => {
+    userNotes.getNote.mockResolvedValue({ data: null });
+
+    render(
+      <UserNoteModal
+        trigger={<button type="button">Open note</button>}
+        username="carol"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open note' }));
+    await waitFor(() =>
+      expect(userNotes.getNote).toHaveBeenCalledWith({ username: 'carol' }),
+    );
+
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+    fireEvent.mouseEnter(cancelButton);
+    expect(
+      await screen.findByText(
+        "Close without saving changes to this user's note.",
+      ),
+    ).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+    );
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    fireEvent.mouseEnter(saveButton);
+    expect(
+      await screen.findByText(
+        "Save this user's color rating, priority flag, and note.",
+      ),
+    ).toBeInTheDocument();
+  });
 });

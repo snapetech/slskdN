@@ -1,6 +1,7 @@
 import * as userNotes from '../../lib/userNotes';
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Header, Icon, Modal } from 'semantic-ui-react';
+import { Form, Header, Icon, Modal } from 'semantic-ui-react';
+import { TooltipButton } from '../Shared';
 
 const colors = [
   { icon: 'circle outline', text: 'None', value: null },
@@ -187,14 +188,20 @@ const UserNoteModal = ({ onClose, trigger, username }) => {
         </Form>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button
+        <TooltipButton
+          onClick={handleClose}
+          tooltip="Close without saving changes to this user's note."
+        >
+          Cancel
+        </TooltipButton>
+        <TooltipButton
           disabled={loading}
           onClick={handleSave}
           primary
+          tooltip="Save this user's color rating, priority flag, and note."
         >
           Save
-        </Button>
+        </TooltipButton>
       </Modal.Actions>
     </Modal>
   );

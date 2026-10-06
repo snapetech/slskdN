@@ -1,6 +1,7 @@
 import './Chat.css';
 import React, { useEffect } from 'react';
-import { Button, Form, Header, Icon, Input, Modal } from 'semantic-ui-react';
+import { Form, Header, Icon, Input, Modal } from 'semantic-ui-react';
+import { TooltipButton } from '../Shared';
 
 const usernameRef = React.createRef();
 
@@ -58,14 +59,24 @@ const SendMessageModal = ({ initiateConversation, ...rest }) => {
         </Form>
       </Modal.Content>
       <Modal.Actions>
-        <Button onClick={() => setOpen(false)}>Cancel</Button>
-        <Button
+        <TooltipButton
+          onClick={() => setOpen(false)}
+          tooltip="Close this dialog without sending the private message."
+        >
+          Cancel
+        </TooltipButton>
+        <TooltipButton
           disabled={!validInput()}
           onClick={() => sendMessage()}
           positive
+          tooltip={
+            validInput()
+              ? 'Start or open a private conversation and send this message.'
+              : 'Enter a username and message before sending.'
+          }
         >
           Send
-        </Button>
+        </TooltipButton>
       </Modal.Actions>
     </Modal>
   );

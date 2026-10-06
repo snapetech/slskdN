@@ -72,6 +72,21 @@ describe('mediaServerIntegrations', () => {
     );
   });
 
+  it('does not apply a path mapping to a sibling with the same string prefix', () => {
+    expect(
+      buildMediaServerPathDiagnostic({
+        localPath: '/downloads-old/Album/track.flac',
+        remotePathFrom: '/downloads',
+        remotePathTo: '/library',
+        serverPath: '/library-old/Album/track.flac',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        status: 'Needs Mapping',
+      }),
+    );
+  });
+
   it('builds an explicit sync readiness preview', () => {
     const preview = buildMediaServerSyncPreview({
       adapterId: 'jellyfin',
