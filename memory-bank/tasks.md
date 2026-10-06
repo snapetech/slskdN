@@ -78,8 +78,9 @@
 - [x] Preview `.344` through the startup diagnostic release note.
 - [x] Refresh the active red-team candidate count to 12,408; these candidates
   are not confirmed bugs.
-- [ ] Commit/push gotcha `0z1702`, startup diagnostics changes and release
-  fragment, updated inventory/memory notes, then pass the post-push baseline.
+- [x] Commit/push gotcha `0z1702`, startup diagnostics changes and release
+  fragment, updated inventory/memory notes at `d438b47cb`; the full
+  post-push remediation baseline passes.
 - [ ] Complete `.344` publisher verification. The Launchpad source is
   Published, but the Jammy AMD64 build is still `Needs building`; create
   stable `.345` only after that binary is published.

@@ -18578,3 +18578,16 @@ confirmed defects. Gotcha `0z1702` and the startup product commit are local;
 the current count, task handoff and progress/context update need committing,
 then push and run the complete post-push baseline. The `.344` Jammy AMD64
 build remains `Needs building`.
+
+
+## 2026-10-05 23:59 UTC — Push startup diagnostic hardening
+
+Pushed startup path/exception sanitization, Loki URL redaction, two runtime
+log regressions, the baseline source guard, gotcha `0z1702`, release note,
+and refreshed inventory/task/context at `d438b47cb`. The full post-push
+remediation baseline passes, including runtime/package checks, all diagnostic
+guards, local identity, the active candidate count (12,408), and branch sync.
+The full Release test run passes 6,106 tests (74 application, 5,743 unit,
+289 integration), and repository lint passes. `.344` remains immutable and
+artifact-verified; Launchpad still marks its exact Jammy AMD64 build `Needs
+building`, so `.345` remains held until the binary is published.
