@@ -4,6 +4,19 @@
 > **Date**: 2025-12-08  
 > **Author**: AI-assisted development sessions
 
+### 0z1736. Keep Release-Note Area Slugs Within The Validator Limit (2026-10-06)
+
+**What went wrong:** The MediaCore release-note fragment used an area slug
+longer than the release-note validator's 32-character maximum, blocking the
+range preview.
+
+**Why:** The area was composed from several product labels without checking
+the fragment schema's length constraint.
+
+**Prevention:** Keep `area` as a concise lowercase slug of 2–32 characters and
+run the release-note validator and range preview before pushing a release
+candidate.
+
 ### 0z1735. Check Shared Wrapper Bindings Before Reusing Prop Names (2026-10-06)
 
 **What went wrong:** Adding the Semantic UI `content` prop to
